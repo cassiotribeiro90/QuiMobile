@@ -1,24 +1,27 @@
-import 'package:equatable/equatable.dart';
+import 'package:intl/intl.dart';
+import 'enums.dart';
 
-class Loja extends Equatable {
+class Loja {
   final int id;
   final String nome;
   final String descricao;
-  final String categoria;
+  final CategoriaTipo categoria;
   final String logo;
   final String capa;
   final double nota;
+  final double latitude;
+  final double longitude;
   final int tempoEntregaMin;
   final int tempoEntregaMax;
   final double taxaEntrega;
   final double pedidoMinimo;
-  final Endereco endereco;
-  final HorarioFuncionamento horarioFuncionamento;
-  final List<String> formasPagamento;
-  final bool ativo;
-  final bool destaque;
+  final List<TipoPagamento> formasPagamento;
+  final Map<String, String> horarioFuncionamento;
+  final bool favoritado;
+  final bool promocao;
+  double? distanciaKm;
 
-  const Loja({
+  Loja({
     required this.id,
     required this.nome,
     required this.descricao,
@@ -26,122 +29,116 @@ class Loja extends Equatable {
     required this.logo,
     required this.capa,
     required this.nota,
+    required this.latitude,
+    required this.longitude,
     required this.tempoEntregaMin,
     required this.tempoEntregaMax,
     required this.taxaEntrega,
     required this.pedidoMinimo,
-    required this.endereco,
-    required this.horarioFuncionamento,
     required this.formasPagamento,
-    required this.ativo,
-    required this.destaque,
+    required this.horarioFuncionamento,
+    this.favoritado = false,
+    this.promocao = false,
+    this.distanciaKm,
   });
+
+  StatusLoja get status {
+    final now = DateTime.now();
+    final weekDay = DateFormat('EEEE', 'en_US').format(now).toLowerCase();
+
+    final horarioHoje = horarioFuncionamento[weekDay];
+    if (horarioHoje == null || horarioHoje.toLowerCase() == 'fechado') {
+      return StatusLoja.fechado;
+    }
+
+    try {
+      final parts = horarioHoje.split('-');
+      final aberturaParts = parts[0].split(':');
+      final fechamentoParts = parts[1].split(':');
+
+      final aberturaTime = DateTime(
+          now.year, now.month, now.day, int.parse(aberturaParts[0]),
+          int.parse(aberturaParts[1]));
+      var fechamentoTime = DateTime(
+          now.year, now.month, now.day, int.parse(fechamentoParts[0]),
+          int.parse(fechamentoParts[1]));
+
+      if (fechamentoTime.isBefore(aberturaTime)) {
+        if (now.isBefore(aberturaTime)) {
+          final aberturaOntem = aberturaTime.subtract(const Duration(days: 1));
+          return now.isAfter(aberturaOntem) && now.isBefore(fechamentoTime)
+              ? StatusLoja.aberto : StatusLoja.fechado;
+        } else {
+          fechamentoTime = fechamentoTime.add(const Duration(days: 1));
+        }
+      }
+
+      return now.isAfter(aberturaTime) && now.isBefore(fechamentoTime)
+          ? StatusLoja.aberto
+          : StatusLoja.fechado;
+    } catch (e) {
+      return StatusLoja.fechado;
+    }
+  }
+
+  String get tempoEntregaFormatado => '$tempoEntregaMin-$tempoEntregaMax min';
+
+  String get taxaEntregaFormatada {
+    if (taxaEntrega == 0) {
+      return 'Frete grátis';
+    }
+    return NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(
+        taxaEntrega);
+  }
 
   factory Loja.fromJson(Map<String, dynamic> json) {
     return Loja(
-      id: json['id'],
-      nome: json['nome'],
-      descricao: json['descricao'],
-      categoria: json['categoria'],
-      logo: json['logo'],
-      capa: json['capa'],
+      id: json['id'] as int,
+      nome: json['nome'] as String,
+      descricao: json['descricao'] as String,
+      categoria: CategoriaTipo.values.firstWhere((e) =>
+      e.name == json['categoria'], orElse: () => CategoriaTipo.outros),
+      logo: json['logo'] as String,
+      capa: json['capa'] as String,
       nota: (json['nota'] as num).toDouble(),
-      tempoEntregaMin: json['tempoEntregaMin'],
-      tempoEntregaMax: json['tempoEntregaMax'],
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+      tempoEntregaMin: json['tempoEntregaMin'] as int,
+      tempoEntregaMax: json['tempoEntregaMax'] as int,
       taxaEntrega: (json['taxaEntrega'] as num).toDouble(),
       pedidoMinimo: (json['pedidoMinimo'] as num).toDouble(),
-      endereco: Endereco.fromJson(json['endereco']),
-      horarioFuncionamento: HorarioFuncionamento.fromJson(json['horarioFuncionamento']),
-      formasPagamento: List<String>.from(json['formasPagamento']),
-      ativo: json['ativo'],
-      destaque: json['destaque'],
+      formasPagamento: (json['formasPagamento'] as List)
+          .map((p) => TipoPagamento.values.firstWhere((e) => e.name == p))
+          .toList(),
+      horarioFuncionamento: Map<String, String>.from(
+          json['horarioFuncionamento']),
+      favoritado: json['favoritado'] ?? false,
+      promocao: json['promocao'] ?? false,
+      distanciaKm: json['distanciaKm'] != null ? (json['distanciaKm'] as num)
+          .toDouble() : null,
     );
   }
 
-  @override
-  List<Object?> get props => [
-        id,
-        nome,
-        descricao,
-        categoria,
-        logo,
-        capa,
-        nota,
-        tempoEntregaMin,
-        tempoEntregaMax,
-        taxaEntrega,
-        pedidoMinimo,
-        endereco,
-        horarioFuncionamento,
-        formasPagamento,
-        ativo,
-        destaque,
-      ];
-}
-
-class Endereco extends Equatable {
-  final String rua;
-  final String bairro;
-  final String cidade;
-  final String uf;
-  final double lat;
-  final double lng;
-
-  const Endereco({
-    required this.rua,
-    required this.bairro,
-    required this.cidade,
-    required this.uf,
-    required this.lat,
-    required this.lng,
-  });
-
-  factory Endereco.fromJson(Map<String, dynamic> json) {
-    return Endereco(
-      rua: json['rua'],
-      bairro: json['bairro'],
-      cidade: json['cidade'],
-      uf: json['uf'],
-      lat: (json['lat'] as num).toDouble(),
-      lng: (json['lng'] as num).toDouble(),
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nome': nome,
+      'descricao': descricao,
+      'categoria': categoria.name,
+      'logo': logo,
+      'capa': capa,
+      'nota': nota,
+      'latitude': latitude,
+      'longitude': longitude,
+      'tempoEntregaMin': tempoEntregaMin,
+      'tempoEntregaMax': tempoEntregaMax,
+      'taxaEntrega': taxaEntrega,
+      'pedidoMinimo': pedidoMinimo,
+      'formasPagamento': formasPagamento.map((p) => p.name).toList(),
+      'horarioFuncionamento': horarioFuncionamento,
+      'favoritado': favoritado,
+      'promocao': promocao,
+      'distanciaKm': distanciaKm,
+    };
   }
-
-  @override
-  List<Object?> get props => [rua, bairro, cidade, uf, lat, lng];
-}
-
-class HorarioFuncionamento extends Equatable {
-  final String segunda;
-  final String terca;
-  final String quarta;
-  final String quinta;
-  final String sexta;
-  final String sabado;
-  final String domingo;
-
-  const HorarioFuncionamento({
-    required this.segunda,
-    required this.terca,
-    required this.quarta,
-    required this.quinta,
-    required this.sexta,
-    required this.sabado,
-    required this.domingo,
-  });
-
-  factory HorarioFuncionamento.fromJson(Map<String, dynamic> json) {
-    return HorarioFuncionamento(
-      segunda: json['segunda'],
-      terca: json['terca'],
-      quarta: json['quarta'],
-      quinta: json['quinta'],
-      sexta: json['sexta'],
-      sabado: json['sabado'],
-      domingo: json['domingo'],
-    );
-  }
-
-  @override
-  List<Object?> get props => [segunda, terca, quarta, quinta, sexta, sabado, domingo];
 }
