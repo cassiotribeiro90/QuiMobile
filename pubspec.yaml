@@ -14,7 +14,8 @@ dependencies:
   dio: ^5.5.0+1
   shared_preferences: ^2.2.3
   intl: ^0.19.0
-  cached_network_image: ^3.3.1 # Adicionando o pacote de cache de imagem
+  cached_network_image: ^3.3.1
+  get_it: ^7.7.0 # Adicionando o container de DI
 
 dev_dependencies:
   flutter_test:
@@ -23,24 +24,16 @@ dev_dependencies:
   bloc_test: ^9.1.7
   flutter_launcher_icons: ^0.13.1
 
-# Configuração Elegante de Ícones
 flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-
-  # Ícone principal (usado no iOS e como fallback para Androids antigos)
   image_path: "lib/app/assets/icon/icon.png"
-
-  # --- Ícones Adaptativos para Android moderno ---
-  # Cor de fundo do ícone. Pode ser "#FFFFFF" ou um asset.
   adaptive_icon_background: "#FFFFFF"
-
-  # A imagem do seu logo (com transparência) que fica sobre o fundo.
   adaptive_icon_foreground: "lib/app/assets/icon/icon_foreground.png"
 
 flutter:
   uses-material-design: true
   assets:
     - lib/app/assets/data/
-    - lib/app/assets/data/
+    - lib/app/assets/icon/

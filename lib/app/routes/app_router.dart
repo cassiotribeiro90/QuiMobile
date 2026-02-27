@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:qui/app/di/dependencies.dart';
+import 'package:qui/app/modules/loja_home/cubit/loja_home_cubit.dart';
+import 'package:qui/app/modules/loja_home/views/loja_home_view.dart';
 import '../modules/home/cubit/home_cubit.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/loja_avaliacoes/cubit/loja_avaliacoes_cubit.dart';
@@ -13,26 +16,32 @@ class AppRouter {
     switch (settings.name) {
       case Routes.SPLASH:
         return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (context) => SplashCubit(),
+          builder: (_) => BlocProvider.value(
+            value: getIt<SplashCubit>(),
             child: const SplashView(),
           ),
         );
       case Routes.HOME:
         return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (context) => HomeCubit(),
+          builder: (_) => BlocProvider.value(
+            value: getIt<HomeCubit>(),
             child: const HomeView(),
           ),
         );
       case Routes.LOJA_AVALIACOES:
-        // Pega o id da loja passado como argumento
         final lojaId = settings.arguments as int;
         return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            // Cria o Cubit específico para a loja selecionada
-            create: (context) => LojaAvaliacoesCubit(lojaId),
+          builder: (_) => BlocProvider.value(
+            value: getIt<LojaAvaliacoesCubit>(param1: lojaId),
             child: const LojaAvaliacoesView(),
+          ),
+        );
+      case Routes.LOJA_HOME:
+        final lojaId = settings.arguments as int;
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider.value(
+            value: getIt<LojaHomeCubit>(param1: lojaId),
+            child: const LojaHomeView(), // CORRIGIDO: Não precisa mais passar o ID
           ),
         );
       default:

@@ -1,11 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../models/loja_model.dart';
-import '../../../routes/app_routes.dart';
 import '../../../widgets/common/app_text.dart';
 import '../cubit/lojas_cubit.dart';
 import '../cubit/lojas_state.dart';
+import 'loja_item_widget.dart'; // Importa o novo componente
 
 class LojasView extends StatefulWidget {
   const LojasView({super.key});
@@ -17,9 +16,8 @@ class LojasView extends StatefulWidget {
 class _LojasViewState extends State<LojasView> {
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Garante que o load só será chamado na primeira vez que o cubit for criado.
+  void initState() {
+    super.initState();
     if (context.read<LojasCubit>().state is LojasInitial) {
       context.read<LojasCubit>().loadLojas();
     }
@@ -33,8 +31,7 @@ class _LojasViewState extends State<LojasView> {
   Widget build(BuildContext context) {
     return BlocConsumer<LojasCubit, LojasState>(
       listener: (context, state) {
-        // Mostra o SnackBar em caso de erro, com verificação de montagem e ação de retry.
-        if (state is LojasError && state is! LojasInitial) {
+        if (state is LojasError) {
           if (mounted) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
@@ -51,12 +48,10 @@ class _LojasViewState extends State<LojasView> {
         }
       },
       builder: (context, state) {
-        // Mostra o loading apenas na carga inicial.
         if (state is LojasInitial || state is LojasLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Se houver um erro na carga inicial, mostra uma tela com botão de retry.
         if (state is LojasError) {
           return Center(
             child: Column(
@@ -79,7 +74,7 @@ class _LojasViewState extends State<LojasView> {
         }
 
         if (state is LojasLoaded) {
-          if (state.lojas.isEmpty) {
+          if (state.allLojas.isEmpty) {
             return Center(
               child: AppText(
                 'Nenhuma loja encontrada na sua região.',
@@ -88,103 +83,25 @@ class _LojasViewState extends State<LojasView> {
               ),
             );
           }
-          // A lista é envolvida no RefreshIndicator e usa o _buildLojasList
           return RefreshIndicator(
             onRefresh: _onRefresh,
-            child: _buildLojasList(state.lojas),
+            child: _buildLojasList(state.allLojas),
           );
         }
 
-        // Retorna um container vazio para qualquer outro caso inesperado.
         return const SizedBox.shrink();
       },
     );
   }
 
+  // O métoo de build da lista agora é muito mais simples
   Widget _buildLojasList(List<Loja> lojas) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    // Usando ListView.separated para melhor performance e separação visual.
     return ListView.separated(
       itemCount: lojas.length,
-      padding: const EdgeInsets.all(16.0), // Padding geral da lista.
-      separatorBuilder: (context, index) => const SizedBox(height: 12), // Espaçamento entre os cards.
+      padding: const EdgeInsets.all(4.0),
+      separatorBuilder: (context, index) => const SizedBox(height: 4),
       itemBuilder: (context, index) {
-        final loja = lojas[index];
-        return Card(
-          margin: EdgeInsets.zero, // Margem controlada pelo padding e separator.
-          clipBehavior: Clip.antiAlias,
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: SizedBox(
-            height: 180,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedNetworkImage(
-                  imageUrl: loja.capa,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                  errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 48)),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.8),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: const [0.5, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 12,
-                  left: 12,
-                  right: 12,
-                  child: SelectionArea(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppText(
-                          loja.nome,
-                          style: textTheme.titleMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            IconButton(
-                              tooltip: 'Ver avaliações',
-                              icon: Icon(Icons.star, color: colorScheme.secondary),
-                              onPressed: () {
-                                Navigator.of(context).pushNamed(
-                                  Routes.LOJA_AVALIACOES,
-                                  arguments: loja.id,
-                                );
-                              },
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              splashRadius: 20,
-                            ),
-                            const SizedBox(width: 4),
-                            AppText(loja.nota.toString(), style: textTheme.labelLarge),
-                            const SizedBox(width: 8),
-                            AppText('• ${loja.categoria.name}', style: textTheme.bodySmall),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        return LojaItemWidget(loja: lojas[index]); // Usa o novo componente
       },
     );
   }

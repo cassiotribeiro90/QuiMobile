@@ -1,23 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../theme/app_theme.dart';
 import '../cubit/loja_avaliacoes_cubit.dart';
 import '../cubit/loja_avaliacoes_state.dart';
 
-class LojaAvaliacoesView extends StatefulWidget {
+class LojaAvaliacoesView extends StatelessWidget {
+  // O construtor agora é simples e não precisa mais do ID.
   const LojaAvaliacoesView({super.key});
-
-  @override
-  State<LojaAvaliacoesView> createState() => _LojaAvaliacoesViewState();
-}
-
-class _LojaAvaliacoesViewState extends State<LojaAvaliacoesView> {
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (context.read<LojaAvaliacoesCubit>().state is LojaAvaliacoesInitial) {
-        context.read<LojaAvaliacoesCubit>().loadAvaliacoes();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +19,7 @@ class _LojaAvaliacoesViewState extends State<LojaAvaliacoesView> {
       ),
       body: BlocBuilder<LojaAvaliacoesCubit, LojaAvaliacoesState>(
         builder: (context, state) {
-          if (state is LojaAvaliacoesLoading) {
+          if (state is LojaAvaliacoesLoading || state is LojaAvaliacoesInitial) {
             return const Center(child: CircularProgressIndicator());
           } else if (state is LojaAvaliacoesError) {
             return Center(

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'app/di/dependencies.dart';
 import 'app/routes/app_router.dart';
 import 'app/routes/app_routes.dart';
 import 'app/theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await setupDependencies(); // Inicializa as dependências
   runApp(const MainApp());
 }
 

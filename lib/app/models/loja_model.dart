@@ -35,31 +35,13 @@ class Endereco {
   }
 
   Map<String, dynamic> toJson() => {
-    'rua': rua,
-    'bairro': bairro,
-    'cidade': cidade,
-    'uf': uf,
-    'lat': lat,
-    'lng': lng,
-  };
-
-  Endereco copyWith({
-    String? rua,
-    String? bairro,
-    String? cidade,
-    String? uf,
-    double? lat,
-    double? lng,
-  }) {
-    return Endereco(
-      rua: rua ?? this.rua,
-      bairro: bairro ?? this.bairro,
-      cidade: cidade ?? this.cidade,
-      uf: uf ?? this.uf,
-      lat: lat ?? this.lat,
-      lng: lng ?? this.lng,
-    );
-  }
+        'rua': rua,
+        'bairro': bairro,
+        'cidade': cidade,
+        'uf': uf,
+        'lat': lat,
+        'lng': lng,
+      };
 
   @override
   String toString() {
@@ -109,20 +91,17 @@ class Loja {
   // Status da loja baseado no horário de funcionamento
   StatusLoja get status {
     final now = DateTime.now();
-    final weekDay = DateFormat('EEEE', 'pt_BR').format(now).toLowerCase();
-
-    // Mapeamento para português
-    final dayMap = {
-      'segunda': 'monday',
-      'terça': 'tuesday',
-      'quarta': 'wednesday',
-      'quinta': 'thursday',
-      'sexta': 'friday',
-      'sábado': 'saturday',
-      'domingo': 'sunday',
+    // Lógica robusta usando o weekday do DateTime (1 para segunda, 7 para domingo)
+    const dayMap = {
+      1: 'segunda',
+      2: 'terca',
+      3: 'quarta',
+      4: 'quinta',
+      5: 'sexta',
+      6: 'sabado',
+      7: 'domingo',
     };
-
-    final dayKey = dayMap[weekDay] ?? weekDay;
+    final dayKey = dayMap[now.weekday];
     final horarioHoje = horarioFuncionamento[dayKey];
 
     if (horarioHoje == null || horarioHoje.toLowerCase() == 'fechado') {
@@ -140,87 +119,51 @@ class Loja {
         return StatusLoja.fechado;
       }
 
-      final aberturaTime = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          int.parse(aberturaParts[0]),
-          int.parse(aberturaParts[1])
-      );
+      final aberturaTime = DateTime(now.year, now.month, now.day, int.parse(aberturaParts[0]), int.parse(aberturaParts[1]));
+      var fechamentoTime = DateTime(now.year, now.month, now.day, int.parse(fechamentoParts[0]), int.parse(fechamentoParts[1]));
 
-      var fechamentoTime = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          int.parse(fechamentoParts[0]),
-          int.parse(fechamentoParts[1])
-      );
-
-      // Lida com horário que passa da meia-noite
+      // Lida com horário que passa da meia-noite (ex: 18:00-02:00)
       if (fechamentoTime.isBefore(aberturaTime)) {
-        fechamentoTime = fechamentoTime.add(const Duration(days: 1));
+        if (now.isBefore(aberturaTime)) {
+          // Ex: agora são 1h da manhã, a loja abre às 18h e fecha às 2h. A abertura foi ontem.
+          final aberturaOntem = aberturaTime.subtract(const Duration(days: 1));
+          return now.isAfter(aberturaOntem) && now.isBefore(fechamentoTime)
+              ? StatusLoja.aberto
+              : StatusLoja.fechado;
+        } else {
+          // Ex: agora são 20h, a loja abre às 18h e fecha às 2h. O fechamento é amanhã.
+          fechamentoTime = fechamentoTime.add(const Duration(days: 1));
+        }
       }
 
       return now.isAfter(aberturaTime) && now.isBefore(fechamentoTime)
           ? StatusLoja.aberto
           : StatusLoja.fechado;
     } catch (e) {
-      debugPrint('Erro ao processar horário: $e');
+      debugPrint('Erro ao processar horário para loja $id: $e');
       return StatusLoja.fechado;
     }
   }
 
   // Formatações
-  String get tempoEntregaFormatado {
-    if (tempoEntregaMin == tempoEntregaMax) {
-      return '$tempoEntregaMin min';
-    }
-    return '$tempoEntregaMin-$tempoEntregaMax min';
-  }
-
-  String get taxaEntregaFormatada {
-    if (taxaEntrega == 0) return 'Frete grátis';
-    if (taxaEntrega < 0) return 'Frete a combinar';
-    return NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(taxaEntrega);
-  }
-
-  String get pedidoMinimoFormatado {
-    return NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(pedidoMinimo);
-  }
-
+  String get tempoEntregaFormatado => '$tempoEntregaMin-$tempoEntregaMax min';
+  String get taxaEntregaFormatada => taxaEntrega == 0 ? 'Frete grátis' : NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(taxaEntrega);
   String get enderecoCompleto => endereco.toString();
-
-  String? get distanciaFormatada {
-    if (distanciaKm == null) return null;
-    if (distanciaKm! < 1) {
-      return '${(distanciaKm! * 1000).toInt()}m';
-    }
-    return '${distanciaKm!.toStringAsFixed(1)}km';
-  }
-
   bool get isOpenNow => status == StatusLoja.aberto;
 
   // Factory methods
   static CategoriaTipo _parseCategoria(String categoria) {
-    try {
-      return CategoriaTipo.values.firstWhere(
-            (e) => e.name.toLowerCase() == categoria.toLowerCase(),
-      );
-    } catch (e) {
-      debugPrint('Categoria não reconhecida: $categoria, usando "outros"');
-      return CategoriaTipo.outros;
-    }
+    return CategoriaTipo.values.firstWhere(
+          (e) => e.name.toLowerCase() == categoria.toLowerCase(),
+          orElse: () => CategoriaTipo.outros,
+    );
   }
 
   static TipoPagamento _parsePagamento(String pagamento) {
-    try {
-      return TipoPagamento.values.firstWhere(
-            (e) => e.name.toLowerCase() == pagamento.toLowerCase(),
-      );
-    } catch (e) {
-      debugPrint('Pagamento não reconhecido: $pagamento, usando "credito"');
-      return TipoPagamento.credito;
-    }
+    return TipoPagamento.values.firstWhere(
+          (e) => e.name.toLowerCase() == pagamento.toLowerCase(),
+          orElse: () => TipoPagamento.credito,
+    );
   }
 
   factory Loja.fromJson(Map<String, dynamic>? json) {
@@ -241,17 +184,11 @@ class Loja {
       tempoEntregaMax: json['tempoEntregaMax'] as int? ?? 50,
       taxaEntrega: (json['taxaEntrega'] as num?)?.toDouble() ?? 0.0,
       pedidoMinimo: (json['pedidoMinimo'] as num?)?.toDouble() ?? 0.0,
-      formasPagamento: (json['formasPagamento'] as List? ?? [])
-          .map((p) => _parsePagamento(p as String? ?? ''))
-          .toList(),
-      horarioFuncionamento: Map<String, String>.from(
-          json['horarioFuncionamento'] as Map? ?? {}
-      ),
+      formasPagamento: (json['formasPagamento'] as List? ?? []).map((p) => _parsePagamento(p as String? ?? '')).toList(),
+      horarioFuncionamento: Map<String, String>.from(json['horarioFuncionamento'] as Map? ?? {}),
       favoritado: json['favoritado'] as bool? ?? false,
       destaque: json['destaque'] as bool? ?? false,
-      distanciaKm: json['distanciaKm'] != null
-          ? (json['distanciaKm'] as num?)?.toDouble()
-          : null,
+      distanciaKm: (json['distanciaKm'] as num?)?.toDouble(),
     );
   }
 
@@ -275,81 +212,5 @@ class Loja {
       'destaque': destaque,
       'distanciaKm': distanciaKm,
     };
-  }
-
-  // CopyWith para facilitar atualizações
-  Loja copyWith({
-    int? id,
-    String? nome,
-    String? descricao,
-    CategoriaTipo? categoria,
-    String? logo,
-    String? capa,
-    double? nota,
-    Endereco? endereco,
-    int? tempoEntregaMin,
-    int? tempoEntregaMax,
-    double? taxaEntrega,
-    double? pedidoMinimo,
-    List<TipoPagamento>? formasPagamento,
-    Map<String, String>? horarioFuncionamento,
-    bool? favoritado,
-    bool? destaque,
-    double? distanciaKm,
-  }) {
-    return Loja(
-      id: id ?? this.id,
-      nome: nome ?? this.nome,
-      descricao: descricao ?? this.descricao,
-      categoria: categoria ?? this.categoria,
-      logo: logo ?? this.logo,
-      capa: capa ?? this.capa,
-      nota: nota ?? this.nota,
-      endereco: endereco ?? this.endereco,
-      tempoEntregaMin: tempoEntregaMin ?? this.tempoEntregaMin,
-      tempoEntregaMax: tempoEntregaMax ?? this.tempoEntregaMax,
-      taxaEntrega: taxaEntrega ?? this.taxaEntrega,
-      pedidoMinimo: pedidoMinimo ?? this.pedidoMinimo,
-      formasPagamento: formasPagamento ?? this.formasPagamento,
-      horarioFuncionamento: horarioFuncionamento ?? this.horarioFuncionamento,
-      favoritado: favoritado ?? this.favoritado,
-      destaque: destaque ?? this.destaque,
-      distanciaKm: distanciaKm ?? this.distanciaKm,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Loja &&
-        other.id == id &&
-        other.nome == nome &&
-        other.favoritado == favoritado;
-  }
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
-// Extension com funcionalidades extras
-extension LojaListExtension on List<Loja> {
-  List<Loja> get favoritas => where((l) => l.favoritado).toList();
-
-  List<Loja> get abertas => where((l) => l.isOpenNow).toList();
-
-  List<Loja> ordernarPorDistancia() {
-    return [...this]..sort((a, b) {
-      if (a.distanciaKm == null) return 1;
-      if (b.distanciaKm == null) return -1;
-      return a.distanciaKm!.compareTo(b.distanciaKm!);
-    });
-  }
-
-  List<Loja> ordernarPorNota() {
-    return [...this]..sort((a, b) => b.nota.compareTo(a.nota));
-  }
-
-  List<Loja> filtrarPorCategoria(CategoriaTipo categoria) {
-    return where((l) => l.categoria == categoria).toList();
   }
 }
