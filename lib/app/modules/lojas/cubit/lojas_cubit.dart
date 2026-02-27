@@ -8,17 +8,32 @@ class LojasCubit extends Cubit<LojasState> {
   LojasCubit() : super(LojasInitial());
 
   Future<void> loadLojas() async {
+    const String assetPath = 'lib/app/assets/data/lojas.json';
+
     try {
       emit(LojasLoading());
 
-      final String jsonString = await rootBundle.loadString('lib/app/assets/data/lojas.json');
+      // Limpa o cache para garantir uma nova leitura.
+      ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+        'flutter/assets',
+        const StandardMethodCodec().encodeMethodCall(MethodCall('evict', assetPath)),
+        (ByteData? data) {},
+      );
+
+      final String jsonString = await rootBundle.loadString(assetPath);
+      
+      // Decodifica a string JSON para um mapa.
       final Map<String, dynamic> jsonData = json.decode(jsonString);
-      final List<dynamic> lojasJson = jsonData['lojas'];
-      final List<Loja> lojas = lojasJson.map((json) => Loja.fromJson(json)).toList();
+      
+      // Acessa a lista de lojas dentro da chave 'lojas'.
+      final List<dynamic> lojasData = jsonData['lojas'] as List<dynamic>;
+
+      // Converte a lista de JSON para uma lista de objetos Loja.
+      final List<Loja> lojas = lojasData.map((data) => Loja.fromJson(data)).toList();
 
       emit(LojasLoaded(lojas));
     } catch (e) {
-      emit(LojasError('Falha ao carregar as lojas: ${e.toString()}'));
+      emit(LojasError('Falha ao decodificar os dados: ${e.toString()}'));
     }
   }
 }

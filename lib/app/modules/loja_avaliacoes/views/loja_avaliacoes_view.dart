@@ -12,13 +12,18 @@ class LojaAvaliacoesView extends StatefulWidget {
 
 class _LojaAvaliacoesViewState extends State<LojaAvaliacoesView> {
   @override
-  void initState() {
-    super.initState();
-    context.read<LojaAvaliacoesCubit>().loadAvaliacoes();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (context.read<LojaAvaliacoesCubit>().state is LojaAvaliacoesInitial) {
+        context.read<LojaAvaliacoesCubit>().loadAvaliacoes();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Avaliações da Loja'),
@@ -28,13 +33,24 @@ class _LojaAvaliacoesViewState extends State<LojaAvaliacoesView> {
           if (state is LojaAvaliacoesLoading) {
             return const Center(child: CircularProgressIndicator());
           } else if (state is LojaAvaliacoesError) {
-            return Center(child: Text(state.message));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                child: Text(state.message, style: textTheme.bodyLarge, textAlign: TextAlign.center),
+              ),
+            );
           } else if (state is LojaAvaliacoesLoaded) {
             if (state.avaliacoes.isEmpty) {
-              return const Center(child: Text('Esta loja ainda não tem avaliações.'));
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                  child: Text('Esta loja ainda não tem avaliações.', style: textTheme.bodyLarge, textAlign: TextAlign.center),
+                ),
+              );
             }
             return ListView.builder(
               itemCount: state.avaliacoes.length,
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
               itemBuilder: (context, index) {
                 final avaliacao = state.avaliacoes[index];
                 return Card(
@@ -52,7 +68,7 @@ class _LojaAvaliacoesViewState extends State<LojaAvaliacoesView> {
                               children: List.generate(5, (starIndex) {
                                 return Icon(
                                   starIndex < avaliacao.nota ? Icons.star : Icons.star_border,
-                                  color: Colors.amber,
+                                  color: colorScheme.secondary,
                                   size: 16,
                                 );
                               }),

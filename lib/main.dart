@@ -14,10 +14,10 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Qui Delivery',
-      theme: AppTheme.themeData, // <<< APLICANDO O TEMA!
+      theme: AppTheme.themeData,
       initialRoute: Routes.SPLASH,
       onGenerateRoute: AppRouter.onGenerateRoute,
-      debugShowCheckedModeBanner: false, // Remove o banner de debug
+      debugShowCheckedModeBanner: false,
     );
   }
 }
