@@ -1,9 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../models/produto_model.dart';
 import '../../../theme/app_theme.dart';
-import '../../apparte/widgets/product_card.dart';
+import '../../lojas/widgets/product_card.dart';
 import '../cubit/loja_home_cubit.dart';
 import '../cubit/loja_home_state.dart';
 import 'filter_modal.dart';
@@ -16,35 +15,40 @@ class LojaHomeView extends StatefulWidget {
 }
 
 class _LojaHomeViewState extends State<LojaHomeView> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
+  late final TextEditingController _searchController;
+  late final FocusNode _searchFocusNode;
 
-  // Filtros selecionados (exemplo)
-  final Set<String> _selectedCategories = {};
-  final RangeValues _priceRange = const RangeValues(0, 150);
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _searchFocusNode = FocusNode();
+    _searchController.addListener(() {
+      context.read<LojaHomeCubit>().searchQueryChanged(_searchController.text);
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _searchFocus.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
-  void _openFilterModal() {
+  void _showFilterModal(LojaHomeLoaded state) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FilterModal(
-        selectedCategories: _selectedCategories,
-        priceRange: _priceRange,
-        onApply: (categories, range) {
-          setState(() {
-            _selectedCategories.clear();
-            _selectedCategories.addAll(categories);
-            // Aplica os filtros aqui
-          });
-        },
+      builder: (_) => BlocProvider.value(
+        value: context.read<LojaHomeCubit>(),
+        child: FilterModal(
+          // CORRIGIDO: Passa os valores do estado atual
+          selectedCategories: state.selectedCategories,
+          priceRange: const RangeValues(0, 100), // Exemplo, idealmente viria do state
+          onApply: (selectedCategories, priceRange) {
+            context.read<LojaHomeCubit>().applyCategoryFilter(selectedCategories);
+          },
+        ),
       ),
     );
   }
@@ -61,149 +65,37 @@ class _LojaHomeViewState extends State<LojaHomeView> {
           } else if (state is LojaHomeLoaded) {
             final loja = state.loja;
 
-            return CustomScrollView(
-              slivers: [
-                // SLIVER APPBAR COM HEADER
-                SliverAppBar(
-                  expandedHeight: 280,
-                  floating: true,
-                  snap: true,
-                  pinned: false,
-                  stretch: true,
-                  backgroundColor: Colors.white,
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    color: AppTheme.primaryColor,
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  title: Text(
-                    loja.nome,
-                    style: const TextStyle(
-                      color: AppTheme.darkColor,
-                      fontWeight: FontWeight.bold,
+            return GestureDetector(
+              onTap: () => _searchFocusNode.unfocus(),
+              child: CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    expandedHeight: 220.0,
+                    pinned: true,
+                    backgroundColor: AppTheme.primaryColor,
+                    title: Text(loja.nome),
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CachedNetworkImage(imageUrl: loja.capa, fit: BoxFit.cover),
+                          Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.6), Colors.transparent], begin: Alignment.topCenter, end: Alignment.center))),
+                        ],
+                      ),
                     ),
                   ),
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Imagem de fundo
-                        CachedNetworkImage(
-                          imageUrl: loja.capa,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) =>
-                              Container(color: AppTheme.lightGreyColor),
-                        ),
-
-                        // Gradiente
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            height: 150,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.9),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Informações da loja
-                        Positioned(
-                          bottom: 16,
-                          left: 16,
-                          right: 16,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: CachedNetworkImage(
-                                  imageUrl: loja.logo,
-                                  width: 70,
-                                  height: 70,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => Container(
-                                    width: 70,
-                                    height: 70,
-                                    color: Colors.grey[300],
-                                    child: const Icon(Icons.store),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      loja.nome,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.star, color: Colors.amber, size: 18),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          loja.nota.toString(),
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: loja.isOpenNow ? Colors.green : Colors.red,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            loja.isOpenNow ? 'ABERTO' : 'FECHADO',
-                                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SearchHeaderDelegate(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      onFilterTap: () => _showFilterModal(state), // Passa o estado atual
+                      selectedFiltersCount: state.activeFilterCount,
                     ),
                   ),
-                ),
-
-                // BARRA DE PESQUISA E FILTRO (FIXA)
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _SearchHeaderDelegate(
-                    controller: _searchController,
-                    focusNode: _searchFocus,
-                    onFilterTap: _openFilterModal,
-                    selectedFiltersCount: _selectedCategories.length,
-                  ),
-                ),
-
-                // CONTEÚDO DOS PRODUTOS
-                SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: _buildProdutosSliver(context, state.produtosPorCategoria),
-                ),
-              ],
+                  _buildBody(context, state),
+                ],
+              ),
             );
           }
           return const SizedBox.shrink();
@@ -212,131 +104,44 @@ class _LojaHomeViewState extends State<LojaHomeView> {
     );
   }
 
-  Widget _buildProdutosSliver(
-      BuildContext context,
-      Map<String, List<Produto>> produtosPorCategoria,
-      ) {
-    final categorias = produtosPorCategoria.keys.toList();
+  Widget _buildBody(BuildContext context, LojaHomeLoaded state) {
+    if (state.filteredProdutos.isEmpty && _searchController.text.isNotEmpty) {
+      return const SliverFillRemaining(child: Center(child: Text('Nenhum produto encontrado para sua busca.')));
+    }
+    if (state.filteredProdutos.isEmpty && state.activeFilterCount > 0) {
+      return const SliverFillRemaining(child: Center(child: Text('Nenhum produto encontrado com os filtros selecionados.')));
+    }
+
+    final categorias = state.produtosPorCategoria.keys.toList();
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
-            (context, index) {
+        (context, index) {
           final categoria = categorias[index];
-          final produtos = produtosPorCategoria[categoria]!;
+          final produtosDaCategoria = state.produtosPorCategoria[categoria] ?? [];
+          if (produtosDaCategoria.isEmpty) return const SizedBox.shrink();
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
-                child: Text(
-                  categoria,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(categoria, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                 ),
-              ),
-              ...produtos.map((produto) => ProductCard(produto: produto)),
-              if (index < categorias.length - 1) const Divider(height: 24),
-            ],
+                const Divider(height: 24),
+                ...produtosDaCategoria.map((produto) => ProductCard(produto: produto)),
+              ],
+            ),
           );
         },
         childCount: categorias.length,
       ),
     );
   }
-
-  Widget _buildProdutoItem(BuildContext context, Produto produto) {
-    return InkWell(
-      onTap: () {},
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    produto.nome,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (produto.descricao.isNotEmpty)
-                    Text(
-                      produto.descricao,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[600],
-                        fontSize: 13,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      if (produto.emPromocao) ...[
-                        Text(
-                          produto.precoFormatado,
-                          style: const TextStyle(
-                            decoration: TextDecoration.lineThrough,
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          produto.precoPromocionalFormatado,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                      ] else
-                        Text(
-                          produto.precoFormatado,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            if (produto.imagem.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
-                  imageUrl: produto.imagem,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => Container(
-                    width: 80,
-                    height: 80,
-                    color: Colors.grey[200],
-                    child: Icon(Icons.fastfood, color: Colors.grey[400]),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
-// DELEGATE PARA HEADER PERSISTENTE (SEARCH + FILTRO)
 class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -357,15 +162,10 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // Campo de busca expandido
           Expanded(
             child: Container(
               height: 48,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
+              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[300]!)),
               child: Row(
                 children: [
                   const SizedBox(width: 12),
@@ -375,70 +175,32 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                     child: TextField(
                       controller: controller,
                       focusNode: focusNode,
-                      decoration: const InputDecoration(
-                        hintText: 'Buscar no cardápio...',
-                        border: InputBorder.none,
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
-                      ),
+                      decoration: const InputDecoration(hintText: 'Buscar no cardápio...', border: InputBorder.none, hintStyle: TextStyle(color: Colors.grey, fontSize: 15)),
                       style: const TextStyle(fontSize: 15),
                     ),
                   ),
                   if (controller.text.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
-                      onPressed: () => controller.clear(),
-                      padding: EdgeInsets.zero,
-                    ),
+                    IconButton(icon: const Icon(Icons.clear, size: 18, color: Colors.grey), onPressed: () => controller.clear(), padding: EdgeInsets.zero),
                 ],
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
-          // Botão de filtro com badge
           Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.tune, color: AppTheme.primaryColor),
-                  onPressed: onFilterTap,
-                  padding: EdgeInsets.zero,
-                ),
+                width: 48, height: 48, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[300]!)),
+                child: IconButton(icon: const Icon(Icons.tune, color: AppTheme.primaryColor), onPressed: onFilterTap, padding: EdgeInsets.zero),
               ),
-
-              // Badge de contagem de filtros
               if (selectedFiltersCount > 0)
                 Positioned(
-                  top: -4,
-                  right: -4,
+                  top: -4, right: -4,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: AppTheme.primaryColor,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Text(
-                      selectedFiltersCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    decoration: const BoxDecoration(color: AppTheme.primaryColor, shape: BoxShape.circle),
+                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                    child: Text(selectedFiltersCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                   ),
                 ),
             ],
@@ -449,14 +211,13 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 72; // Altura quando expandido (igual ao min)
+  double get maxExtent => 72;
 
   @override
-  double get minExtent => 72; // Altura quando colapsado (fixo)
+  double get minExtent => 72;
 
   @override
   bool shouldRebuild(covariant _SearchHeaderDelegate oldDelegate) {
-    return oldDelegate.selectedFiltersCount != selectedFiltersCount ||
-        oldDelegate.controller.text != controller.text;
+    return oldDelegate.selectedFiltersCount != selectedFiltersCount || oldDelegate.controller.text != controller.text;
   }
 }
