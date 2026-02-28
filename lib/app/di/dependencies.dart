@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:qui/app/modules/loja_home/repositories/loja_repository.dart';
+import 'package:qui/app/modules/loja_home/repositories/produto_repository.dart';
 
 import '../modules/home/cubit/home_cubit.dart';
 import '../modules/loja_avaliacoes/cubit/loja_avaliacoes_cubit.dart';
@@ -10,17 +11,21 @@ import '../modules/splash/cubit/splash_cubit.dart';
 final getIt = GetIt.instance;
 
 Future<void> setupDependencies() async {
-  // Repositórios (Lazy Singleton)
+  // Repositórios
   getIt.registerLazySingleton<ILojaRepository>(() => LojaRepositoryMock());
+  getIt.registerLazySingleton<IProdutoRepository>(() => ProdutoRepositoryMock());
 
-  // Cubits (Factory)
+  // Cubits
   getIt.registerFactory(() => SplashCubit());
   getIt.registerFactory(() => HomeCubit());
-  getIt.registerFactory(() => LojasCubit()..loadLojas());
+  getIt.registerFactory(() => LojasCubit());
 
-  // Cubits que precisam de parâmetros são registrados com `registerFactoryParam`
   getIt.registerFactoryParam<LojaHomeCubit, int, void>(
-    (lojaId, _) => LojaHomeCubit(getIt<ILojaRepository>())..fetchLojaDetails(lojaId),
+    (lojaId, _) => LojaHomeCubit(
+      getIt<ILojaRepository>(),
+      getIt<IProdutoRepository>(),
+      lojaId,
+    )..fetchLojaDetails(),
   );
 
   getIt.registerFactoryParam<LojaAvaliacoesCubit, int, void>(

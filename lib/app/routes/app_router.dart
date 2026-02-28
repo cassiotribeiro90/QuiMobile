@@ -41,7 +41,7 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => BlocProvider.value(
             value: getIt<LojaHomeCubit>(param1: lojaId),
-            child: const LojaHomeView(), // CORRIGIDO: Não precisa mais passar o ID
+            child: const LojaHomeView(),
           ),
         );
       default:
