@@ -2,25 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../widgets/common/app_text.dart';
 import '../../lojas/cubit/lojas_cubit.dart';
-import '../../lojas/views/lojas_view.dart';
+import '../../lojas/views/loja_view.dart';
 import '../cubit/home_cubit.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
   final List<Widget> _widgetOptions = const <Widget>[
-    BlocProvider(
-      create: _createLojasCubit,
-      child: LojasView(),
-    ),
+    LojaView(), // A LojaView já é gerenciada pelo getIt
     Center(
       child: AppText('Página de Perfil'),
     ),
   ];
-
-  static LojasCubit _createLojasCubit(BuildContext context) {
-    return LojasCubit();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +23,14 @@ class HomeView extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
+            // CORRIGIDO: Remove o botão de voltar automaticamente
+            automaticallyImplyLeading: false,
             title: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
                 onTap: () {
                   context.read<HomeCubit>().changeTab(0);
                 },
-                // A SOLUÇÃO DEFINITIVA: Usar um Text simples, não o AppText que usa SelectableText.
                 child: const Text('Qui Delivery'),
               ),
             ),
