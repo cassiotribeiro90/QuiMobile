@@ -1,6 +1,6 @@
 markdown
 
-# 🍔 Qui Delivery
+# 🍔 QuiPede
 
 App de delivery desenvolvido em Flutter com arquitetura limpa e BLoC.
 
