@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../api/interceptors/auth_interceptor.dart';
+import '../../features/auth/bloc/auth_state.dart';
 import '../../features/auth/bloc/auth_cubit.dart';
 
 mixin AuthMixin<T extends StatefulWidget> on State<T> {

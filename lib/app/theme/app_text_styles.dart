@@ -4,7 +4,7 @@ import 'app_colors.dart';
 class AppTextStyles {
   AppTextStyles._();
 
-  static const String fontFamily = 'Roboto';
+  static const String fontFamily = 'Poppins'; // Alterado para Poppins conforme roteiro
 
   // Headings
   static const TextStyle h1 = TextStyle(
@@ -54,7 +54,7 @@ class AppTextStyles {
   static const TextStyle button = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.bold,
-    color: AppColors.white,
+    color: AppColors.textWhite,
     fontFamily: fontFamily,
   );
 
