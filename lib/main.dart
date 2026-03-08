@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'app/di/dependencies.dart';
+import 'app/modules/auth/bloc/auth_cubit.dart';
 import 'app/routes/app_router.dart';
 import 'app/routes/app_routes.dart';
 import 'app/theme/app_theme.dart';
 import 'app/theme/theme_cubit.dart';
-import 'shared/auth/auth_observer.dart';
+import 'shared/auth/auth_observer.dart'; // Removido temporariamente
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,7 @@ class QuiPedeApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<ThemeCubit>(create: (_) => getIt<ThemeCubit>()),
+        BlocProvider<AuthCubit>(create: (_) => getIt<AuthCubit>()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
@@ -32,7 +34,7 @@ class QuiPedeApp extends StatelessWidget {
             themeMode: themeState.themeMode,
             initialRoute: Routes.SPLASH,
             onGenerateRoute: AppRouter.onGenerateRoute,
-            navigatorObservers: [AuthObserver()],
+            navigatorObservers: [AuthObserver()], // Comentado para teste
             builder: (context, child) {
               return LayoutBuilder(
                 builder: (context, constraints) {

@@ -1,213 +1,97 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
 
 class AppTheme {
   AppTheme._();
 
-  // ========== ALIASES PARA COMPATIBILIDADE ==========
-  // Adicionando de volta os membros que as views existentes solicitam
-  static const Color primaryColor = AppColors.primary;
-  static const Color lightGreyColor = AppColors.lightGrey;
-  static const Color greyColor = AppColors.grey;
-  static const Color darkColor = AppColors.dark;
+  // Membros estáticos para compatibilidade com código legado
+  static const Color primaryColor = Color(0xFF3949AB);
+  static const Color darkColor = Color(0xFF212121);
+  static const Color lightGreyColor = Color(0xFFF5F5F5);
+  static const Color greyColor = Color(0xFF9E9E9E);
 
-  // ========== TEMA LIGHT ==========
+  // Tema Light
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: const ColorScheme.light(
-      primary: AppColors.primary,
-      secondary: AppColors.secondary,
-      tertiary: AppColors.accent,
-      surface: AppColors.surface,
-      error: AppColors.error,
-      onPrimary: AppColors.textWhite,
-      onSurface: AppColors.textPrimary,
+      primary: primaryColor,
+      secondary: Color(0xFF26A69A),
+      tertiary: Color(0xFFFF7043),
+      surface: Colors.white,
+      error: Color(0xFFD32F2F),
+      onPrimary: Colors.white,
+      onSurface: darkColor,
     ),
-    scaffoldBackgroundColor: AppColors.scaffoldBackground,
+    scaffoldBackgroundColor: const Color(0xFFF8F9FA),
     fontFamily: 'Poppins',
     
-    // Text Theme
     textTheme: const TextTheme(
-      displayLarge: TextStyle(color: AppColors.textPrimary),
-      displayMedium: TextStyle(color: AppColors.textPrimary),
-      displaySmall: TextStyle(color: AppColors.textPrimary),
-      headlineLarge: TextStyle(color: AppColors.textPrimary),
-      headlineMedium: TextStyle(color: AppColors.textPrimary),
-      headlineSmall: TextStyle(color: AppColors.textPrimary),
-      titleLarge: TextStyle(color: AppColors.textPrimary),
-      titleMedium: TextStyle(color: AppColors.textSecondary),
-      titleSmall: TextStyle(color: AppColors.textLight),
-      bodyLarge: TextStyle(color: AppColors.textPrimary),
-      bodyMedium: TextStyle(color: AppColors.textSecondary),
-      bodySmall: TextStyle(color: AppColors.textLight),
-      labelLarge: TextStyle(color: AppColors.textPrimary),
-      labelMedium: TextStyle(color: AppColors.textSecondary),
-      labelSmall: TextStyle(color: AppColors.textLight),
+      bodyLarge: TextStyle(color: darkColor),
+      bodyMedium: TextStyle(color: Color(0xFF757575)),
+      bodySmall: TextStyle(color: Color(0xFF9E9E9E)),
+      titleLarge: TextStyle(color: darkColor),
+      titleMedium: TextStyle(color: Color(0xFF757575)),
+      titleSmall: TextStyle(color: Color(0xFF9E9E9E)),
     ),
     
-    // AppBar Theme
     appBarTheme: const AppBarTheme(
       centerTitle: false,
       elevation: 0,
-      scrolledUnderElevation: 0,
       backgroundColor: Colors.white,
-      foregroundColor: AppColors.textPrimary,
-      iconTheme: IconThemeData(color: AppColors.iconPrimary),
-      actionsIconTheme: IconThemeData(color: AppColors.iconPrimary),
-      titleTextStyle: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
-        fontFamily: 'Poppins',
-      ),
+      foregroundColor: darkColor,
+      iconTheme: IconThemeData(color: darkColor),
     ),
     
-    // Card Theme - Corrigido para CardThemeData
     cardTheme: CardThemeData(
       elevation: 0,
-      color: AppColors.cardBackground,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.cardBorder),
+        side: BorderSide(color: Colors.grey[200]!),
       ),
     ),
-    
-    // Button Themes
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        elevation: 0,
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textWhite,
-        minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        textStyle: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
-      ),
-    ),
-    
-    // Input Decoration
-    inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-      ),
-      filled: true,
-      fillColor: Colors.white,
-      labelStyle: const TextStyle(color: AppColors.textSecondary, fontFamily: 'Poppins'),
-      hintStyle: const TextStyle(color: AppColors.textHint, fontFamily: 'Poppins'),
-    ),
-    
-    // Icon Theme
-    iconTheme: const IconThemeData(color: AppColors.iconPrimary),
   );
 
-  // ========== TEMA DARK ==========
+  // Tema Dark
   static ThemeData get darkTheme => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
-      primary: AppColors.primary,
-      secondary: AppColors.secondary,
-      tertiary: AppColors.accent,
-      surface: AppColors.darkSurface,
-      error: AppColors.error,
-      onPrimary: AppColors.textWhite,
-      onSurface: AppColors.darkTextPrimary,
+      primary: Color(0xFF5C6BC0),
+      secondary: Color(0xFF4DB6AC),
+      tertiary: Color(0xFFFF8A65),
+      surface: Color(0xFF1E1E1E),
+      error: Color(0xFFEF5350),
+      onPrimary: Colors.white,
+      onSurface: Colors.white,
     ),
-    scaffoldBackgroundColor: AppColors.darkBackground,
+    scaffoldBackgroundColor: const Color(0xFF121212),
     fontFamily: 'Poppins',
     
-    // Text Theme Dark
     textTheme: const TextTheme(
-      displayLarge: TextStyle(color: AppColors.darkTextPrimary),
-      displayMedium: TextStyle(color: AppColors.darkTextPrimary),
-      displaySmall: TextStyle(color: AppColors.darkTextPrimary),
-      headlineLarge: TextStyle(color: AppColors.darkTextPrimary),
-      headlineMedium: TextStyle(color: AppColors.darkTextPrimary),
-      headlineSmall: TextStyle(color: AppColors.darkTextPrimary),
-      titleLarge: TextStyle(color: AppColors.darkTextPrimary),
-      titleMedium: TextStyle(color: AppColors.darkTextSecondary),
-      titleSmall: TextStyle(color: AppColors.darkTextLight),
-      bodyLarge: TextStyle(color: AppColors.darkTextPrimary),
-      bodyMedium: TextStyle(color: AppColors.darkTextSecondary),
-      bodySmall: TextStyle(color: AppColors.darkTextLight),
-      labelLarge: TextStyle(color: AppColors.darkTextPrimary),
-      labelMedium: TextStyle(color: AppColors.darkTextSecondary),
-      labelSmall: TextStyle(color: AppColors.darkTextLight),
+      bodyLarge: TextStyle(color: Colors.white),
+      bodyMedium: TextStyle(color: Color(0xFFB0B0B0)),
+      bodySmall: TextStyle(color: Color(0xFF808080)),
+      titleLarge: TextStyle(color: Colors.white),
+      titleMedium: TextStyle(color: Color(0xFFB0B0B0)),
+      titleSmall: TextStyle(color: Color(0xFF808080)),
     ),
     
-    // AppBar Theme Dark
     appBarTheme: const AppBarTheme(
       centerTitle: false,
       elevation: 0,
-      scrolledUnderElevation: 0,
-      backgroundColor: AppColors.darkSurface,
-      foregroundColor: AppColors.darkTextPrimary,
-      iconTheme: IconThemeData(color: AppColors.darkIconPrimary),
-      actionsIconTheme: IconThemeData(color: AppColors.darkIconPrimary),
-      titleTextStyle: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: AppColors.darkTextPrimary,
-        fontFamily: 'Poppins',
-      ),
+      backgroundColor: Color(0xFF1E1E1E),
+      foregroundColor: Colors.white,
+      iconTheme: IconThemeData(color: Colors.white),
     ),
-    
-    // Card Theme Dark - Corrigido para CardThemeData
+
     cardTheme: CardThemeData(
       elevation: 0,
-      color: AppColors.darkCardBackground,
+      color: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.grey[800]!),
       ),
     ),
-    
-    // Button Themes Dark
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        elevation: 0,
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textWhite,
-        minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        textStyle: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
-      ),
-    ),
-    
-    // Input Decoration Dark
-    inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[800]!),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[800]!),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-      ),
-      filled: true,
-      fillColor: AppColors.darkSurface,
-      labelStyle: const TextStyle(color: AppColors.darkTextSecondary, fontFamily: 'Poppins'),
-      hintStyle: const TextStyle(color: AppColors.darkTextLight, fontFamily: 'Poppins'),
-    ),
-    
-    // Icon Theme Dark
-    iconTheme: const IconThemeData(color: AppColors.darkIconPrimary),
   );
 }

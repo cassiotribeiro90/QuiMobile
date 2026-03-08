@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../models/loja_model.dart';
 import '../../../routes/app_routes.dart';
-import '../../../theme/app_theme.dart';
+import '../../../theme/theme_extensions.dart';
 import '../../../widgets/common/app_text.dart';
 
 class LojaItemWidget extends StatelessWidget {
@@ -12,8 +12,9 @@ class LojaItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
 
     return InkWell(
       onTap: () {
@@ -32,8 +33,8 @@ class LojaItemWidget extends StatelessWidget {
                 child: CachedNetworkImage(
                   imageUrl: loja.logo,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(color: AppTheme.lightGreyColor),
-                  errorWidget: (context, url, error) => const Center(child: Icon(Icons.store, color: AppTheme.greyColor)),
+                  placeholder: (context, url) => Container(color: theme.disabledColor.withOpacity(0.1)),
+                  errorWidget: (context, url, error) => Center(child: Icon(Icons.store, color: theme.disabledColor)),
                 ),
               ),
             ),
@@ -43,7 +44,13 @@ class LojaItemWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AppText(loja.nome, style: textTheme.titleSmall?.copyWith(color: AppTheme.darkColor, fontWeight: FontWeight.bold)),
+                  AppText(
+                    loja.nome, 
+                    style: textTheme.titleMedium?.copyWith(
+                      color: context.textPrimary, 
+                      fontWeight: FontWeight.bold
+                    )
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -51,18 +58,21 @@ class LojaItemWidget extends StatelessWidget {
                       const SizedBox(width: 4),
                       AppText(
                         loja.nota.toString(),
-                        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.darkColor),
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold, 
+                          color: context.textPrimary
+                        ),
                       ),
                       AppText(
                         ' • ${loja.categoria.name}',
-                        style: textTheme.bodyMedium?.copyWith(color: AppTheme.greyColor),
+                        style: textTheme.bodyMedium?.copyWith(color: context.textSecondary),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   AppText(
                     '${loja.tempoEntregaFormatado} • ${loja.taxaEntregaFormatada}',
-                    style: textTheme.bodyMedium?.copyWith(color: AppTheme.greyColor),
+                    style: textTheme.bodyMedium?.copyWith(color: context.textSecondary),
                   ),
                 ],
               ),

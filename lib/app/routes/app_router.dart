@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qui/app/di/dependencies.dart';
-import 'package:qui/app/modules/loja_home/cubit/loja_home_cubit.dart';
-import 'package:qui/app/modules/loja_home/views/loja_home_view.dart';
-import '../modules/home/cubit/home_cubit.dart';
-import '../modules/home/views/home_view.dart';
-import '../modules/loja_avaliacoes/cubit/loja_avaliacoes_cubit.dart';
-import '../modules/loja_avaliacoes/views/loja_avaliacoes_view.dart';
-import '../modules/splash/cubit/splash_cubit.dart';
-import '../modules/splash/views/splash_view.dart';
+import 'package:qui/app/modules/auth/bloc/auth_cubit.dart';
+import 'package:qui/app/modules/auth/views/login_screen.dart';
+import 'package:qui/app/modules/home/views/home_screen.dart';
+import 'package:qui/app/modules/lojas/cubit/lojas_cubit.dart';
+import 'package:qui/app/modules/auth/views/splash_screen.dart'; // Importando a correta
+import '../modules/loja_home/cubit/loja_home_cubit.dart';
+import '../modules/loja_home/views/loja_home_view.dart';
 import 'app_routes.dart';
 
 class AppRouter {
@@ -17,25 +16,30 @@ class AppRouter {
       case Routes.SPLASH:
         return MaterialPageRoute(
           builder: (_) => BlocProvider.value(
-            value: getIt<SplashCubit>(),
-            child: const SplashView(),
+            value: getIt<AuthCubit>(),
+            child: const SplashScreen(), // Usando SplashScreen em vez de SplashView
           ),
         );
+      
+      case Routes.LOGIN:
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider.value(
+            value: getIt<AuthCubit>(),
+            child: const LoginScreen(),
+          ),
+        );
+
       case Routes.HOME:
         return MaterialPageRoute(
-          builder: (_) => BlocProvider.value(
-            value: getIt<HomeCubit>(),
-            child: const HomeView(),
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider.value(value: getIt<AuthCubit>()),
+              BlocProvider.value(value: getIt<LojasCubit>()),
+            ],
+            child: const HomeScreen(),
           ),
         );
-      case Routes.LOJA_AVALIACOES:
-        final lojaId = settings.arguments as int;
-        return MaterialPageRoute(
-          builder: (_) => BlocProvider.value(
-            value: getIt<LojaAvaliacoesCubit>(param1: lojaId),
-            child: const LojaAvaliacoesView(),
-          ),
-        );
+
       case Routes.LOJA_HOME:
         final lojaId = settings.arguments as int;
         return MaterialPageRoute(
@@ -44,6 +48,7 @@ class AppRouter {
             child: const LojaHomeView(),
           ),
         );
+
       default:
         return _errorRoute();
     }
@@ -52,9 +57,7 @@ class AppRouter {
   static Route<dynamic> _errorRoute() {
     return MaterialPageRoute(
       builder: (_) => const Scaffold(
-        body: Center(
-          child: Text('Page not found'),
-        ),
+        body: Center(child: Text('Rota não encontrada')),
       ),
     );
   }

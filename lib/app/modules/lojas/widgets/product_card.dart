@@ -41,11 +41,11 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            if (produto.imagem != null && produto.imagem!.isNotEmpty)
+            if (produto.imagem.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: CachedNetworkImage(
-                  imageUrl: produto.imagem!,
+                  imageUrl: produto.imagem,
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,

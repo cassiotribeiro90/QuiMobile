@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/di/dependencies.dart';
-import '../../../features/auth/bloc/auth_cubit.dart';
+import '../../../app/modules/auth/bloc/auth_cubit.dart';
 
 class AuthInterceptor extends Interceptor {
   final List<_PendingRequest> _pendingRequests = [];
@@ -93,7 +93,7 @@ class AuthInterceptor extends Interceptor {
 
   void _logout() {
     // Agora usando o AuthCubit para centralizar o estado de deslogado
-    getIt<AuthCubit>().logout(message: 'Sessão expirada. Por favor, faça login novamente.');
+    getIt<AuthCubit>().logout();
   }
 }
 

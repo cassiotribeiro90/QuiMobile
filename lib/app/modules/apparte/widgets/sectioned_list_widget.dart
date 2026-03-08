@@ -60,7 +60,6 @@ class SectionedListWidget<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
 
     // Se não há seções ou todas estão vazias
     if (sections.isEmpty || sections.every((s) => s.items.isEmpty)) {

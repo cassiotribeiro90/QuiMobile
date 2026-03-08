@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../models/enums.dart';
 import '../cubit/lojas_cubit.dart';
 import '../cubit/lojas_state.dart';
 

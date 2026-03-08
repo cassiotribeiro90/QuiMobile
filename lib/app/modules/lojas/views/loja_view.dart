@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../models/loja_model.dart';
-import '../../../widgets/common/app_text.dart';
 import '../cubit/lojas_cubit.dart';
 import '../cubit/lojas_state.dart';
 import '../widgets/filtros_bar.dart';

@@ -67,7 +67,7 @@ class ProductCard extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(produto.precoPromocionalFormatado,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16,
             color: AppTheme.primaryColor,
           ),
         ),
@@ -79,7 +79,7 @@ class ProductCard extends StatelessWidget {
     }
     return [
       Text(produto.precoFormatado,
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16,
           color: AppTheme.primaryColor,
         ),
       ),

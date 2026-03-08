@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../features/auth/bloc/auth_state.dart';
-import '../../features/auth/bloc/auth_cubit.dart';
+import '../../app/modules/auth/bloc/auth_cubit.dart';
+import '../../app/modules/auth/bloc/auth_state.dart';
 
 mixin AuthMixin<T extends StatefulWidget> on State<T> {
   void handleAuthError(BuildContext context, Function onAuthSuccess) {

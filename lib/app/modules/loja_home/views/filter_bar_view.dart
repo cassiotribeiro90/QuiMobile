@@ -1,110 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../cubit/loja_home_cubit.dart';
+import '../cubit/loja_home_state.dart';
 
-import '../../../models/enums.dart';
-import '../../lojas/cubit/lojas_cubit.dart';
-import '../../lojas/cubit/lojas_state.dart';
-
-// Helper para adicionar funcionalidades ao enum CategoriaTipo
-extension CategoriaHelpers on CategoriaTipo {
-  String get displayName => name[0].toUpperCase() + name.substring(1);
-
-  String get emoji {
-    switch (this) {
-      case CategoriaTipo.hamburgueria:
-        return '🍔';
-      case CategoriaTipo.pizzaria:
-        return '🍕';
-      case CategoriaTipo.japonesa:
-        return '🍣';
-      case CategoriaTipo.brasileira:
-        return '🇧🇷';
-      case CategoriaTipo.sorvete:
-        return '🍦';
-      case CategoriaTipo.bebidas:
-        return '🥤';
-      case CategoriaTipo.saude:
-        return '🥗';
-      case CategoriaTipo.petiscos:
-        return '🥨';
-      default:
-        return '🍽️';
-    }
-  }
-}
-
-class FiltrosBar extends StatelessWidget {
-  const FiltrosBar({super.key});
+class FilterBarView extends StatelessWidget {
+  const FilterBarView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<LojasCubit, LojasState>(
+    return BlocBuilder<LojaHomeCubit, LojaHomeState>(
       builder: (context, state) {
-        if (state is! LojasLoaded) return const SizedBox.shrink();
+        if (state is! LojaHomeLoaded) return const SizedBox.shrink();
 
-        final categorias = state.availableCategories.toList(); // Usando availableCategories do state
-        // Assumindo que o state tenha um objeto de filtro, ex: state.filtros
-        // final filtros = state.filtros;
+        final cubit = context.read<LojaHomeCubit>();
+        final categorias = state.availableCategories.toList();
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Ordenação (Exemplo, supondo que a lógica exista no Cubit)
-            const SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  //_buildOrdenacaoChip(context, '⭐ Melhor avaliação', 'nota', filtros.ordenarPor == 'nota'),
-                  //... outros chips
-                ],
-              ),
-            ),
+        return Container(
+          height: 50,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: categorias.length,
+            itemBuilder: (context, index) {
+              final categoria = categorias[index];
+              final isSelected = state.selectedCategories.contains(categoria);
 
-            const SizedBox(height: 12),
-
-            // Filtros de Categoria
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: categorias.map((categoria) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(
-                        // CORRIGIDO: Usando a nova extension
-                          '${CategoriaHelpers(categoria).emoji} ${CategoriaHelpers(categoria).displayName}',
-                      ),
-                      selected: state.selectedCategories.contains(categoria),
-                      onSelected: (_) {
-                        context.read<LojasCubit>().toggleCategoryFilter(categoria);
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(categoria),
+                  selected: isSelected,
+                  onSelected: (_) => cubit.toggleCategoryFilter(categoria),
+                  selectedColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                  checkmarkColor: Theme.of(context).primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              );
+            },
+          ),
         );
       },
-    );
-  }
-
-  // Função de ordenação corrigida (supondo que o cubit tenha o método ordenarPor)
-  Widget _buildOrdenacaoChip(
-    BuildContext context,
-    String label,
-    String valor,
-    bool selecionado,
-  ) {
-    return FilterChip(
-      label: Text(label),
-      selected: selecionado,
-      onSelected: (_) {
-        // context.read<LojasCubit>().ordenarPor(selecionado ? null : valor);
-      },
-      showCheckmark: false,
     );
   }
 }
