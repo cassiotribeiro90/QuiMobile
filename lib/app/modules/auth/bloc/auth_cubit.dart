@@ -1,41 +1,48 @@
-import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../shared/api/api_client.dart';
+import '../../../../shared/services/token_service.dart';
 import 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-  final SharedPreferences _prefs;
+  final ApiClient _apiClient;
+  final TokenService _tokenService;
 
-  AuthCubit(this._prefs) : super(AuthInitial());
+  AuthCubit(this._apiClient, this._tokenService) : super(AuthInitial());
 
-  Future<void> checkAuth() async {
-    // Emitimos Loading em vez de Initial para garantir que a UI perceba a intenção de processamento
+  Future<void> login(String email, String senha) async {
     emit(AuthLoading());
-    
     try {
-      // Removido o Future.delayed que estava travando o app
-      final token = _prefs.getString('access_token');
-      
-      if (token != null && token.isNotEmpty) {
-        emit(AuthAuthenticated());
+      final response = await _apiClient.post(
+        '/app/auth/login',
+        data: {'email': email, 'senha': senha},
+      );
+
+      if (response.data['success'] == true) {
+        final data = response.data['data'];
+        await _tokenService.saveTokens(
+          data['access_token'],
+          data['refresh_token'],
+        );
+        emit(AuthSuccess(token: data['access_token']));
       } else {
-        emit(AuthUnauthenticated());
+        emit(AuthError(response.data['message'] ?? 'Erro ao realizar login'));
       }
     } catch (e) {
-      // Caso ocorra erro na leitura do SharedPreferences
-      emit(AuthUnauthenticated());
+      emit(const AuthError('Erro de conexão com o servidor'));
     }
   }
 
-  Future<void> login() async {
-    emit(AuthLoading());
-    const token = 'mock_token_quipede';
-    await _prefs.setString('access_token', token);
-    emit(AuthAuthenticated());
+  Future<void> logout() async {
+    await _tokenService.clearTokens();
+    emit(AuthUnauthenticated());
   }
 
-  Future<void> logout() async {
-    await _prefs.remove('access_token');
-    emit(AuthUnauthenticated());
+  Future<void> checkAuth() async {
+    final token = _tokenService.getAccessToken();
+    if (token != null && token.isNotEmpty) {
+      emit(AuthAuthenticated(token: token));
+    } else {
+      emit(AuthUnauthenticated());
+    }
   }
 }

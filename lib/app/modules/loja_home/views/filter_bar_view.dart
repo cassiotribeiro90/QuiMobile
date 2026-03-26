@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../cubit/loja_home_cubit.dart';
-import '../cubit/loja_home_state.dart';
 
+import '../bloc/loja_home_cubit.dart';
+import '../bloc/loja_home_state.dart';
 class FilterBarView extends StatelessWidget {
   const FilterBarView({super.key});
 

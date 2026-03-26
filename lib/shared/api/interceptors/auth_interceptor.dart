@@ -1,25 +1,34 @@
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/di/dependencies.dart';
 import '../../../app/modules/auth/bloc/auth_cubit.dart';
+import '../../services/token_service.dart';
 
 class AuthInterceptor extends Interceptor {
+  final TokenService _tokenService;
+  final Dio _dio;
   final List<_PendingRequest> _pendingRequests = [];
   bool _isRefreshing = false;
 
+  AuthInterceptor(this._tokenService, this._dio);
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final prefs = getIt<SharedPreferences>();
-    final token = prefs.getString('access_token');
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    final bool requiresAuth = options.extra['requiresAuth'] ?? true;
+    
+    if (requiresAuth) {
+      final token = _tokenService.getAccessToken();
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
     handler.next(options);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode != 401) {
+    final bool requiresAuth = err.requestOptions.extra['requiresAuth'] ?? true;
+
+    if (err.response?.statusCode != 401 || !requiresAuth) {
       handler.next(err);
       return;
     }
@@ -35,11 +44,10 @@ class AuthInterceptor extends Interceptor {
       final success = await _refreshToken();
       
       if (success) {
-        final prefs = getIt<SharedPreferences>();
-        final newToken = prefs.getString('access_token');
+        final newToken = _tokenService.getAccessToken();
         err.requestOptions.headers['Authorization'] = 'Bearer $newToken';
         
-        final response = await Dio().fetch(err.requestOptions);
+        final response = await _dio.fetch(err.requestOptions);
         handler.resolve(response);
 
         await _retryFailedRequests();
@@ -58,15 +66,13 @@ class AuthInterceptor extends Interceptor {
 
   Future<bool> _refreshToken() async {
     try {
-      final prefs = getIt<SharedPreferences>();
-      final refreshToken = prefs.getString('refresh_token');
-      
+      final refreshToken = _tokenService.getRefreshToken();
       if (refreshToken == null) return false;
 
-      // TODO: Implementar chamada real de refresh token com o endpoint Yii2
-      // final response = await Dio().post('${EnvConfig.baseUrl}/auth-lojista/refresh', data: {'refresh_token': refreshToken});
+      // TODO: Implementar chamada real de refresh token se necessário
+      // final response = await _dio.post('/auth/refresh', data: {'refresh_token': refreshToken});
       // if (response.statusCode == 200) {
-      //   await prefs.setString('access_token', response.data['access_token']);
+      //   await _tokenService.saveTokens(response.data['access_token'], response.data['refresh_token']);
       //   return true;
       // }
       
@@ -77,13 +83,12 @@ class AuthInterceptor extends Interceptor {
   }
 
   Future<void> _retryFailedRequests() async {
-    final prefs = getIt<SharedPreferences>();
-    final token = prefs.getString('access_token');
+    final token = _tokenService.getAccessToken();
 
     for (var request in _pendingRequests) {
       request.err.requestOptions.headers['Authorization'] = 'Bearer $token';
       try {
-        final response = await Dio().fetch(request.err.requestOptions);
+        final response = await _dio.fetch(request.err.requestOptions);
         request.handler.resolve(response);
       } catch (e) {
         request.handler.reject(DioException(requestOptions: request.err.requestOptions));
@@ -92,7 +97,6 @@ class AuthInterceptor extends Interceptor {
   }
 
   void _logout() {
-    // Agora usando o AuthCubit para centralizar o estado de deslogado
     getIt<AuthCubit>().logout();
   }
 }

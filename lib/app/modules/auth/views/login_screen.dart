@@ -23,6 +23,20 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _handleLogin() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, preencha todos os campos')),
+      );
+      return;
+    }
+
+    context.read<AuthCubit>().login(email, password);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -34,9 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.pushReplacementNamed(context, Routes.HOME);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erro ao realizar login')),
+              SnackBar(content: Text(state.message)),
             );
-            Navigator.pushReplacementNamed(context, Routes.LOGIN);
           }
         },
         child: SingleChildScrollView(
@@ -68,24 +81,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 40),
                 
-                // Campo de E-mail
                 TextField(
                   controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: 'E-mail',
                     prefixIcon: const Icon(Icons.email_outlined),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 
-                // Campo de Senha
                 TextField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -101,10 +109,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
                   ),
                 ),
                 
@@ -117,7 +121,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
                 
-                // Botão de Login
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (context, state) {
                     final isLoading = state is AuthLoading;
@@ -126,14 +129,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton(
-                        onPressed: isLoading ? null : () => context.read<AuthCubit>().login(),
+                        onPressed: isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3949AB),
+                          backgroundColor: theme.colorScheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 2,
                         ),
                         child: isLoading
                             ? const CircularProgressIndicator(color: Colors.white)
@@ -142,7 +144,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
                                 ),
                               ),
                       ),
@@ -151,7 +152,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 30),
                 
-                // Rodapé
                 Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,

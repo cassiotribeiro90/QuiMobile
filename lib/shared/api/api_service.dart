@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
-import '../../core/config/env_config.dart';
+import '../../app/di/dependencies.dart';
+import '../../app_config.dart';
+import '../services/token_service.dart';
 import 'interceptors/auth_interceptor.dart';
 
 class ApiService {
@@ -8,7 +10,7 @@ class ApiService {
   ApiService()
       : _dio = Dio(
           BaseOptions(
-            baseUrl: EnvConfig.baseUrl,
+            baseUrl: AppConfig.baseUrl,
             connectTimeout: const Duration(seconds: 10),
             receiveTimeout: const Duration(seconds: 10),
             headers: {
@@ -17,7 +19,7 @@ class ApiService {
             },
           ),
         ) {
-    _dio.interceptors.add(AuthInterceptor());
+    _dio.interceptors.add(AuthInterceptor(getIt<TokenService>(), _dio));
     _dio.interceptors.add(LogInterceptor(responseBody: true, requestBody: true));
   }
 
@@ -55,11 +57,9 @@ class ApiService {
 
   Exception _handleError(DioException e) {
     if (e.response != null) {
-      // Erro do servidor (4xx, 5xx)
       final message = e.response?.data['message'] ?? 'Erro inesperado';
       return Exception(message);
     } else {
-      // Erro de conexão
       return Exception('Falha na conexão com o servidor');
     }
   }

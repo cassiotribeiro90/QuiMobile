@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import '../../../models/avaliacao_model.dart';
 import 'loja_avaliacoes_state.dart';
@@ -17,7 +17,6 @@ class LojaAvaliacoesCubit extends Cubit<LojaAvaliacoesState> {
       final Map<String, dynamic> jsonData = json.decode(jsonString);
       final List<dynamic> todasAvaliacoesJson = jsonData['avaliacoes'];
 
-      // Filtra as avaliações para pegar apenas as da loja selecionada
       final List<Avaliacao> avaliacoesDaLoja = todasAvaliacoesJson
           .map((json) => Avaliacao.fromJson(json))
           .where((avaliacao) => avaliacao.lojaId == lojaId)

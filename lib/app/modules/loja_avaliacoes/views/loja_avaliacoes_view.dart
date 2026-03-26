@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../cubit/loja_avaliacoes_cubit.dart';
-import '../cubit/loja_avaliacoes_state.dart';
+import '../bloc/loja_avaliacoes_cubit.dart';
+import '../bloc/loja_avaliacoes_state.dart';
 
 class LojaAvaliacoesView extends StatelessWidget {
-  // O construtor agora é simples e não precisa mais do ID.
   const LojaAvaliacoesView({super.key});
 
   @override

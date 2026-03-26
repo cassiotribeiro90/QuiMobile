@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../models/loja_model.dart';
+import '../models/loja.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/theme_extensions.dart';
 import '../../../widgets/common/app_text.dart';
@@ -18,7 +18,6 @@ class LojaItemWidget extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        // Navega para a home da loja, passando o ID
         Navigator.of(context).pushNamed(Routes.LOJA_HOME, arguments: loja.id);
       },
       child: Padding(
@@ -31,7 +30,7 @@ class LojaItemWidget extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
                 child: CachedNetworkImage(
-                  imageUrl: loja.logo,
+                  imageUrl: loja.logo ?? '',
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(color: theme.disabledColor.withOpacity(0.1)),
                   errorWidget: (context, url, error) => Center(child: Icon(Icons.store, color: theme.disabledColor)),
@@ -57,14 +56,14 @@ class LojaItemWidget extends StatelessWidget {
                       Icon(Icons.star, color: colorScheme.secondary, size: 15),
                       const SizedBox(width: 4),
                       AppText(
-                        loja.nota.toString(),
+                        loja.notaMedia.toString(),
                         style: textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.bold, 
                           color: context.textPrimary
                         ),
                       ),
                       AppText(
-                        ' • ${loja.categoria.name}',
+                        ' • ${loja.categoria}',
                         style: textTheme.bodyMedium?.copyWith(color: context.textSecondary),
                       ),
                     ],

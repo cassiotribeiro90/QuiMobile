@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../models/loja_model.dart';
 import '../../../widgets/common/app_text.dart';
-import '../cubit/lojas_cubit.dart';
-import '../cubit/lojas_state.dart';
-import 'loja_item_widget.dart'; // Importa o novo componente
+import '../bloc/lojas_cubit.dart';
+import '../bloc/lojas_state.dart';
+import '../models/loja.dart';
+import 'loja_item_widget.dart';
 
 class LojasView extends StatefulWidget {
   const LojasView({super.key});
@@ -14,17 +14,17 @@ class LojasView extends StatefulWidget {
 }
 
 class _LojasViewState extends State<LojasView> {
-
   @override
   void initState() {
     super.initState();
-    if (context.read<LojasCubit>().state is LojasInitial) {
-      context.read<LojasCubit>().loadLojas();
+    final cubit = context.read<LojasCubit>();
+    if (cubit.state is LojasInitial) {
+      cubit.fetchLojas();
     }
   }
 
   Future<void> _onRefresh() async {
-    context.read<LojasCubit>().loadLojas();
+    context.read<LojasCubit>().fetchLojas(page: 1);
   }
 
   @override
@@ -74,7 +74,7 @@ class _LojasViewState extends State<LojasView> {
         }
 
         if (state is LojasLoaded) {
-          if (state.allLojas.isEmpty) {
+          if (state.lojas.isEmpty) {
             return Center(
               child: AppText(
                 'Nenhuma loja encontrada na sua região.',
@@ -85,7 +85,7 @@ class _LojasViewState extends State<LojasView> {
           }
           return RefreshIndicator(
             onRefresh: _onRefresh,
-            child: _buildLojasList(state.allLojas),
+            child: _buildLojasList(state.lojas),
           );
         }
 
@@ -94,14 +94,13 @@ class _LojasViewState extends State<LojasView> {
     );
   }
 
-  // O métoo de build da lista agora é muito mais simples
   Widget _buildLojasList(List<Loja> lojas) {
     return ListView.separated(
       itemCount: lojas.length,
       padding: const EdgeInsets.all(4.0),
       separatorBuilder: (context, index) => const SizedBox(height: 4),
       itemBuilder: (context, index) {
-        return LojaItemWidget(loja: lojas[index]); // Usa o novo componente
+        return LojaItemWidget(loja: lojas[index]);
       },
     );
   }

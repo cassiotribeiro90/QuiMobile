@@ -1,7 +1,7 @@
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:collection/collection.dart';
-import '../../../models/loja_model.dart';
 import '../../../models/produto_model.dart';
+import '../../lojas/models/loja.dart';
 import '../repositories/loja_repository.dart';
 import '../repositories/produto_repository.dart';
 import 'loja_home_state.dart';
@@ -33,7 +33,7 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
         filteredProdutos: produtos,
         produtosPorCategoria: _groupProdutosByCategoria(produtos),
         availableCategories: categories,
-        selectedCategories: categories, // Começa com todas selecionadas
+        selectedCategories: categories,
         searchQuery: '',
       ));
     } catch (e) {
@@ -68,12 +68,10 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
 
     List<Produto> tempProdutos = List.from(currentState.allProdutos);
 
-    // 1. Filtro de Categoria
     if (currentState.selectedCategories.isNotEmpty && currentState.selectedCategories.length < currentState.availableCategories.length) {
       tempProdutos = tempProdutos.where((p) => currentState.selectedCategories.contains(p.categoria)).toList();
     }
 
-    // 2. Filtro de Busca (Query)
     if (currentState.searchQuery.isNotEmpty) {
       tempProdutos = tempProdutos.where((p) => p.nome.toLowerCase().contains(currentState.searchQuery.toLowerCase())).toList();
     }
@@ -87,6 +85,4 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
   Map<String, List<Produto>> _groupProdutosByCategoria(List<Produto> produtos) {
     return groupBy(produtos, (Produto p) => p.categoria);
   }
-
-  void applyCategoryFilter(Set<String> selectedCategories) {}
 }

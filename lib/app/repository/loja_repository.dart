@@ -1,6 +1,6 @@
 
 import '../models/enums.dart';
-import '../models/loja_model.dart';
+import '../modules/lojas/models/loja.dart';
 
 /// Abstração do repositório de lojas
 abstract class LojaRepository {

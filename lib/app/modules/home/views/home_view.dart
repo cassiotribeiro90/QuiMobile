@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qui/app/di/dependencies.dart';
 import '../../../widgets/common/app_text.dart';
-import '../../lojas/cubit/lojas_cubit.dart';
+import '../../lojas/bloc/lojas_cubit.dart';
 import '../../lojas/views/loja_view.dart';
-import '../cubit/home_cubit.dart';
+import '../bloc/home_cubit.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
-  // CORRIGIDO: A LojaView agora é envolvida por um BlocProvider que obtém a instância do getIt.
   static final List<Widget> _widgetOptions = <Widget>[
     BlocProvider.value(
       value: getIt<LojasCubit>(),

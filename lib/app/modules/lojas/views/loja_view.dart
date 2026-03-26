@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../models/loja_model.dart';
-import '../cubit/lojas_cubit.dart';
-import '../cubit/lojas_state.dart';
+import '../bloc/lojas_cubit.dart';
+import '../bloc/lojas_state.dart';
+import '../models/loja.dart';
 import '../widgets/filtros_bar.dart';
 import 'loja_item_widget.dart';
 
@@ -14,17 +14,17 @@ class LojaView extends StatefulWidget {
 }
 
 class _LojaViewState extends State<LojaView> {
-
   @override
   void initState() {
     super.initState();
-    if (context.read<LojasCubit>().state is LojasInitial) {
-      context.read<LojasCubit>().loadLojas();
+    final cubit = context.read<LojasCubit>();
+    if (cubit.state is LojasInitial) {
+      cubit.fetchLojas();
     }
   }
 
   Future<void> _onRefresh() async {
-    context.read<LojasCubit>().loadLojas();
+    context.read<LojasCubit>().fetchLojas(page: 1);
   }
 
   @override
@@ -60,7 +60,7 @@ class _LojaViewState extends State<LojaView> {
                 }
 
                 if (state is LojasLoaded) {
-                  return _buildLoadedState(state.filteredLojas);
+                  return _buildLoadedState(state.lojas);
                 }
 
                 return const SizedBox.shrink();
@@ -97,7 +97,6 @@ class _LojaViewState extends State<LojaView> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Se for tela larga (web), centraliza a lista com largura máxima.
         if (constraints.maxWidth > 800) {
           return Align(
             alignment: Alignment.topCenter,
@@ -107,7 +106,6 @@ class _LojaViewState extends State<LojaView> {
             ),
           );
         }
-        // No mobile, a lista ocupa toda a largura.
         return listContent;
       },
     );

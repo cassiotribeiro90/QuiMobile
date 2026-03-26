@@ -7,7 +7,7 @@ class EnvConfig {
   static String get baseUrl {
     switch (environment) {
       case Environment.dev:
-        return 'http://localhost/qui-backend/web'; // Ajuste conforme seu backend
+        return 'http://localhost:8001/api/'; // Ajuste conforme seu backend
       case Environment.staging:
         return 'https://api.staging.quigestor.com';
       case Environment.prod:

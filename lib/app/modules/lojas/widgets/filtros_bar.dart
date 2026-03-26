@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../../../models/enums.dart';
-import '../cubit/lojas_cubit.dart';
-import '../cubit/lojas_state.dart';
+import '../bloc/lojas_cubit.dart';
+import '../bloc/lojas_state.dart';
 
 class FiltrosBar extends StatelessWidget {
   const FiltrosBar({super.key});
@@ -15,7 +13,7 @@ class FiltrosBar extends StatelessWidget {
         if (state is! LojasLoaded) return const SizedBox.shrink();
 
         final cubit = context.read<LojasCubit>();
-        final categorias = state.availableCategories.toList();
+        final categorias = state.categoriasDisponiveis;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,30 +25,34 @@ class FiltrosBar extends StatelessWidget {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Wrap(
-                spacing: 8.0,
+              child: Row(
                 children: [
-                  _buildOrdenacaoChip(context, 'Padrão', OrdenacaoTipo.padrao, state.ordenacaoAtual == OrdenacaoTipo.padrao),
-                  _buildOrdenacaoChip(context, '⭐ Avaliação', OrdenacaoTipo.nota, state.ordenacaoAtual == OrdenacaoTipo.nota),
-                  _buildOrdenacaoChip(context, '📍 Distância', OrdenacaoTipo.distancia, state.ordenacaoAtual == OrdenacaoTipo.distancia),
+                  _buildOrdenacaoChip(context, 'Melhor Nota', 'nota', state.ordenacaoAtual == 'nota'),
+                  const SizedBox(width: 8),
+                  _buildOrdenacaoChip(context, 'Mais Rápido', 'tempo_entrega', state.ordenacaoAtual == 'tempo_entrega'),
+                  const SizedBox(width: 8),
+                  _buildOrdenacaoChip(context, 'Mais Próximo', 'distancia', state.ordenacaoAtual == 'distancia'),
                 ],
               ),
             ),
             const Divider(height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Text('Filtrar por Categoria', style: Theme.of(context).textTheme.titleSmall),
+              child: Text('Categorias', style: Theme.of(context).textTheme.titleSmall),
             ),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Wrap(
-                spacing: 8.0,
+              child: Row(
                 children: categorias.map((categoria) {
-                  return FilterChip(
-                    label: Text('${categoria.emoji} ${categoria.displayName}'),
-                    selected: state.selectedCategories.contains(categoria),
-                    onSelected: (_) => cubit.toggleCategoryFilter(categoria),
+                  final isSelected = state.categoriasSelecionadas.contains(categoria);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: FilterChip(
+                      label: Text(categoria),
+                      selected: isSelected,
+                      onSelected: (_) => cubit.toggleCategoryFilter(categoria),
+                    ),
                   );
                 }).toList(),
               ),
@@ -64,14 +66,16 @@ class FiltrosBar extends StatelessWidget {
   Widget _buildOrdenacaoChip(
     BuildContext context,
     String label,
-    OrdenacaoTipo tipo,
+    String tipo,
     bool selecionado,
   ) {
     return ChoiceChip(
       label: Text(label),
       selected: selecionado,
-      onSelected: (_) {
-        context.read<LojasCubit>().sortLojasBy(tipo);
+      onSelected: (selected) {
+        if (selected) {
+          context.read<LojasCubit>().sortLojasBy(tipo);
+        }
       },
     );
   }

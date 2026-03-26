@@ -1,11 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../models/produto_model.dart';
 import '../../../theme/app_theme.dart';
-import '../../lojas/widgets/product_card.dart';
-import '../cubit/loja_home_cubit.dart';
-import '../cubit/loja_home_state.dart';
-import 'filter_modal.dart';
+import '../../apparte/widgets/product_card.dart';
+import '../bloc/loja_home_cubit.dart';
+import '../bloc/loja_home_state.dart';
+import '../views/filter_modal.dart';
 
 class LojaHomeView extends StatefulWidget {
   const LojaHomeView({super.key});
@@ -15,40 +16,52 @@ class LojaHomeView extends StatefulWidget {
 }
 
 class _LojaHomeViewState extends State<LojaHomeView> {
-  late final TextEditingController _searchController;
-  late final FocusNode _searchFocusNode;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  bool _isHeaderCollapsed = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController();
-    _searchFocusNode = FocusNode();
-    _searchController.addListener(() {
-      context.read<LojaHomeCubit>().searchQueryChanged(_searchController.text);
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LojaHomeCubit>().fetchLojaDetails();
     });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _searchFocusNode.dispose();
+    _searchFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _showFilterModal(LojaHomeLoaded state) {
+  void _onScroll() {
+    final isCollapsed = _scrollController.hasClients && _scrollController.offset > 200;
+    if (_isHeaderCollapsed != isCollapsed) {
+      setState(() {
+        _isHeaderCollapsed = isCollapsed;
+      });
+    }
+  }
+
+  void _openFilterModal() {
+    final cubit = context.read<LojaHomeCubit>();
+    final state = cubit.state;
+    if (state is! LojaHomeLoaded) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => BlocProvider.value(
-        value: context.read<LojaHomeCubit>(),
-        child: FilterModal(
-          // CORRIGIDO: Passa os valores do estado atual
-          selectedCategories: state.selectedCategories,
-          priceRange: const RangeValues(0, 100), // Exemplo, idealmente viria do state
-          onApply: (selectedCategories, priceRange) {
-            context.read<LojaHomeCubit>().applyCategoryFilter(selectedCategories);
-          },
-        ),
+      backgroundColor: Colors.transparent,
+      builder: (context) => FilterModal(
+        selectedCategories: state.selectedCategories,
+        priceRange: const RangeValues(0, 150), // Exemplo fixo por enquanto
+        onApply: (categories, range) {
+          // Implementar lógica de aplicação se necessário ou via Cubit
+        },
       ),
     );
   }
@@ -65,37 +78,145 @@ class _LojaHomeViewState extends State<LojaHomeView> {
           } else if (state is LojaHomeLoaded) {
             final loja = state.loja;
 
-            return GestureDetector(
-              onTap: () => _searchFocusNode.unfocus(),
-              child: CustomScrollView(
-                slivers: [
-                  SliverAppBar(
-                    expandedHeight: 220.0,
-                    pinned: true,
-                    backgroundColor: AppTheme.primaryColor,
-                    title: Text(loja.nome),
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CachedNetworkImage(imageUrl: loja.capa, fit: BoxFit.cover),
-                          Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.6), Colors.transparent], begin: Alignment.topCenter, end: Alignment.center))),
-                        ],
+            return CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 280,
+                  floating: false,
+                  pinned: true,
+                  stretch: true,
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    color: _isHeaderCollapsed ? AppTheme.primaryColor : Colors.white,
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  title: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: _isHeaderCollapsed ? 1.0 : 0.0,
+                    child: Text(
+                      loja.nome,
+                      style: const TextStyle(
+                        color: AppTheme.darkColor,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SearchHeaderDelegate(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      onFilterTap: () => _showFilterModal(state), // Passa o estado atual
-                      selectedFiltersCount: state.activeFilterCount,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: loja.capa?.toString() ?? "",
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) =>
+                              Container(color: AppTheme.lightGreyColor),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            height: 150,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.9),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 16,
+                          left: 16,
+                          right: 16,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: CachedNetworkImage(
+                                  imageUrl: loja.logo ?? "",
+                                  width: 70,
+                                  height: 70,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, __, ___) => Container(
+                                    width: 70,
+                                    height: 70,
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.store),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      loja.nome,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.star, color: Colors.amber, size: 18),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          loja.notaMedia.toString(),
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green, // Mock simplificado
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Text(
+                                            'ABERTO',
+                                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  _buildBody(context, state),
-                ],
-              ),
+                ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SearchHeaderDelegate(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                    onFilterTap: _openFilterModal,
+                    selectedFiltersCount: state.activeFilterCount,
+                    onChanged: (value) => context.read<LojaHomeCubit>().searchQueryChanged(value),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: _buildProdutosSliver(context, state.produtosPorCategoria),
+                ),
+              ],
             );
           }
           return const SizedBox.shrink();
@@ -104,36 +225,34 @@ class _LojaHomeViewState extends State<LojaHomeView> {
     );
   }
 
-  Widget _buildBody(BuildContext context, LojaHomeLoaded state) {
-    if (state.filteredProdutos.isEmpty && _searchController.text.isNotEmpty) {
-      return const SliverFillRemaining(child: Center(child: Text('Nenhum produto encontrado para sua busca.')));
-    }
-    if (state.filteredProdutos.isEmpty && state.activeFilterCount > 0) {
-      return const SliverFillRemaining(child: Center(child: Text('Nenhum produto encontrado com os filtros selecionados.')));
-    }
-
-    final categorias = state.produtosPorCategoria.keys.toList();
+  Widget _buildProdutosSliver(
+      BuildContext context,
+      Map<String, List<Produto>> produtosPorCategoria,
+      ) {
+    final categorias = produtosPorCategoria.keys.toList();
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
-        (context, index) {
+            (context, index) {
           final categoria = categorias[index];
-          final produtosDaCategoria = state.produtosPorCategoria[categoria] ?? [];
-          if (produtosDaCategoria.isEmpty) return const SizedBox.shrink();
+          final produtos = produtosPorCategoria[categoria]!;
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(categoria, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+                child: Text(
+                  categoria,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
-                const Divider(height: 24),
-                ...produtosDaCategoria.map((produto) => ProductCard(produto: produto)),
-              ],
-            ),
+              ),
+              ...produtos.map((produto) => ProductCard(produto: produto)),
+              if (index < categorias.length - 1) const Divider(height: 24),
+            ],
           );
         },
         childCount: categorias.length,
@@ -147,12 +266,14 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   final FocusNode focusNode;
   final VoidCallback onFilterTap;
   final int selectedFiltersCount;
+  final Function(String)? onChanged;
 
   _SearchHeaderDelegate({
     required this.controller,
     required this.focusNode,
     required this.onFilterTap,
     required this.selectedFiltersCount,
+    this.onChanged,
   });
 
   @override
@@ -165,7 +286,11 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
           Expanded(
             child: Container(
               height: 48,
-              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[300]!)),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
               child: Row(
                 children: [
                   const SizedBox(width: 12),
@@ -175,12 +300,24 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                     child: TextField(
                       controller: controller,
                       focusNode: focusNode,
-                      decoration: const InputDecoration(hintText: 'Buscar no cardápio...', border: InputBorder.none, hintStyle: TextStyle(color: Colors.grey, fontSize: 15)),
+                      onChanged: onChanged,
+                      decoration: const InputDecoration(
+                        hintText: 'Buscar no cardápio...',
+                        border: InputBorder.none,
+                        hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
+                      ),
                       style: const TextStyle(fontSize: 15),
                     ),
                   ),
                   if (controller.text.isNotEmpty)
-                    IconButton(icon: const Icon(Icons.clear, size: 18, color: Colors.grey), onPressed: () => controller.clear(), padding: EdgeInsets.zero),
+                    IconButton(
+                      icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
+                      onPressed: () {
+                        controller.clear();
+                        if (onChanged != null) onChanged!('');
+                      },
+                      padding: EdgeInsets.zero,
+                    ),
                 ],
               ),
             ),
@@ -190,17 +327,42 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 48, height: 48, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[300]!)),
-                child: IconButton(icon: const Icon(Icons.tune, color: AppTheme.primaryColor), onPressed: onFilterTap, padding: EdgeInsets.zero),
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.tune, color: AppTheme.primaryColor),
+                  onPressed: onFilterTap,
+                  padding: EdgeInsets.zero,
+                ),
               ),
               if (selectedFiltersCount > 0)
                 Positioned(
-                  top: -4, right: -4,
+                  top: -4,
+                  right: -4,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: AppTheme.primaryColor, shape: BoxShape.circle),
-                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                    child: Text(selectedFiltersCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      selectedFiltersCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
             ],
@@ -218,6 +380,7 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _SearchHeaderDelegate oldDelegate) {
-    return oldDelegate.selectedFiltersCount != selectedFiltersCount || oldDelegate.controller.text != controller.text;
+    return oldDelegate.selectedFiltersCount != selectedFiltersCount ||
+        oldDelegate.controller.text != controller.text;
   }
 }
