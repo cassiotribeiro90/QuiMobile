@@ -13,7 +13,7 @@ class FilterBarView extends StatelessWidget {
         if (state is! LojaHomeLoaded) return const SizedBox.shrink();
 
         final cubit = context.read<LojaHomeCubit>();
-        final categorias = state.availableCategories.toList();
+        final categorias = state.selectedCategories.toList();
 
         return Container(
           height: 50,

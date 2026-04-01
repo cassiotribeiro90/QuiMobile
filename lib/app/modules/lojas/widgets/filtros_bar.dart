@@ -13,7 +13,7 @@ class FiltrosBar extends StatelessWidget {
         if (state is! LojasLoaded) return const SizedBox.shrink();
 
         final cubit = context.read<LojasCubit>();
-        final categorias = state.categoriasDisponiveis;
+        final categorias = state.categorias;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,13 +45,13 @@ class FiltrosBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: categorias.map((categoria) {
-                  final isSelected = state.categoriasSelecionadas.contains(categoria);
+                  final isSelected = state.categoriaSelecionada == categoria.value;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: FilterChip(
-                      label: Text(categoria),
+                      label: Text(categoria.label),
                       selected: isSelected,
-                      onSelected: (_) => cubit.toggleCategoryFilter(categoria),
+                      onSelected: (_) => cubit.filterByCategoria(categoria.value),
                     ),
                   );
                 }).toList(),
@@ -73,9 +73,7 @@ class FiltrosBar extends StatelessWidget {
       label: Text(label),
       selected: selecionado,
       onSelected: (selected) {
-        if (selected) {
-          context.read<LojasCubit>().sortLojasBy(tipo);
-        }
+        context.read<LojasCubit>().sortLojasBy(tipo);
       },
     );
   }

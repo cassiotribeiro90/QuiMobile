@@ -1,52 +1,76 @@
 import 'package:equatable/equatable.dart';
 import '../models/loja.dart';
+import '../models/filter_option_model.dart';
+import '../models/pagination_model.dart';
 
 abstract class LojasState extends Equatable {
   const LojasState();
-  @override List<Object?> get props => [];
+  @override
+  List<Object?> get props => [];
 }
 
 class LojasInitial extends LojasState {}
-
 class LojasLoading extends LojasState {}
 
 class LojasLoaded extends LojasState {
   final List<Loja> lojas;
   final List<Loja> lojasFiltradas;
-  final List<String> categoriasDisponiveis;
-  final List<String> categoriasSelecionadas;
+  final List<FilterOptionModel> categorias;
+  final String? categoriaSelecionada;
   final String? ordenacaoAtual;
-  final Map<String, dynamic>? pagination;
+  final String? searchQuery;
+  final PaginationModel pagination;
+  final bool isLoadingMore;
 
   const LojasLoaded({
     required this.lojas,
     required this.lojasFiltradas,
-    this.categoriasDisponiveis = const [],
-    this.categoriasSelecionadas = const [],
+    required this.categorias,
+    this.categoriaSelecionada,
     this.ordenacaoAtual,
-    this.pagination,
+    this.searchQuery,
+    required this.pagination,
+    this.isLoadingMore = false,
   });
 
-  // Getters para compatibilidade
-  List<Loja> get allLojas => lojas;
-  List<Loja> get filteredLojas => lojasFiltradas;
-  List<String> get availableCategories => categoriasDisponiveis;
-  List<String> get selectedCategories => categoriasSelecionadas;
-
   @override
-  List<Object?> get props => [lojas, lojasFiltradas, categoriasDisponiveis, categoriasSelecionadas, ordenacaoAtual, pagination];
+  List<Object?> get props => [
+        lojas,
+        lojasFiltradas,
+        categorias,
+        categoriaSelecionada,
+        ordenacaoAtual,
+        searchQuery,
+        pagination,
+        isLoadingMore,
+      ];
+
+  LojasLoaded copyWith({
+    List<Loja>? lojas,
+    List<Loja>? lojasFiltradas,
+    List<FilterOptionModel>? categorias,
+    String? categoriaSelecionada,
+    String? ordenacaoAtual,
+    String? searchQuery,
+    PaginationModel? pagination,
+    bool? isLoadingMore,
+  }) {
+    return LojasLoaded(
+      lojas: lojas ?? this.lojas,
+      lojasFiltradas: lojasFiltradas ?? this.lojasFiltradas,
+      categorias: categorias ?? this.categorias,
+      categoriaSelecionada: categoriaSelecionada ?? this.categoriaSelecionada,
+      ordenacaoAtual: ordenacaoAtual ?? this.ordenacaoAtual,
+      searchQuery: searchQuery ?? this.searchQuery,
+      pagination: pagination ?? this.pagination,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    );
+  }
 }
 
 class LojasError extends LojasState {
   final String message;
   const LojasError(this.message);
-  @override List<Object?> get props => [message];
+  @override
+  List<Object?> get props => [message];
 }
-
-class LojaOperationSuccess extends LojasState {
-  final String message;
-  const LojaOperationSuccess(this.message);
-  @override List<Object?> get props => [message];
-}
-
-class LojaOperationLoading extends LojasState {}

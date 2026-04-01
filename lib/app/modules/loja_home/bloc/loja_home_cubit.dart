@@ -1,88 +1,202 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:collection/collection.dart';
+import 'loja_home_state.dart';
 import '../../../models/produto_model.dart';
 import '../../lojas/models/loja.dart';
-import '../repositories/loja_repository.dart';
-import '../repositories/produto_repository.dart';
-import 'loja_home_state.dart';
+import '../../../../shared/api/api_client.dart';
 
 class LojaHomeCubit extends Cubit<LojaHomeState> {
-  final ILojaRepository _lojaRepository;
-  final IProdutoRepository _produtoRepository;
+  final ApiClient _apiClient;
   final int lojaId;
+  
+  int _currentPage = 1;
+  bool _hasMore = true;
+  List<Produto> _todosProdutos = [];
+  String? _searchQuery;
+  List<String> _selectedCategories = [];
 
-  LojaHomeCubit(this._lojaRepository, this._produtoRepository, this.lojaId)
-      : super(LojaHomeInitial());
+  LojaHomeCubit(this._apiClient, this.lojaId) : super(LojaHomeInitial());
 
   Future<void> fetchLojaDetails() async {
+    emit(LojaHomeLoading());
     try {
-      emit(LojaHomeLoading());
+      final lojaResponse = await _apiClient.get('/app/loja/$lojaId');
+      
+      final produtosResponse = await _apiClient.get(
+        '/app/loja/$lojaId/produtos',
+        queryParameters: {
+          'page': 1,
+          'per_page': 10,
+          if (_searchQuery != null && _searchQuery!.isNotEmpty) 'search': _searchQuery,
+          if (_selectedCategories.isNotEmpty) 'categoria': _selectedCategories.join(','),
+        },
+      );
 
-      final results = await Future.wait([
-        _lojaRepository.getLojaById(lojaId),
-        _produtoRepository.getProdutosByLojaId(lojaId),
-      ]);
+      if (lojaResponse.data['success'] == true &&
+          produtosResponse.data['success'] == true) {
+        
+        final loja = Loja.fromJson(lojaResponse.data['data']);
+        final items = List<Map<String, dynamic>>.from(produtosResponse.data['data']['items']);
+        final pagination = produtosResponse.data['data']['pagination'];
+        
+        _todosProdutos = items.map((json) => Produto.fromJson(json)).toList();
+        _currentPage = pagination['page'];
+        _hasMore = _currentPage < pagination['total_pages'];
 
-      final loja = results[0] as Loja;
-      final produtos = results[1] as List<Produto>;
-      final categories = produtos.map((p) => p.categoria).toSet();
-
-      emit(LojaHomeLoaded(
-        loja: loja,
-        allProdutos: produtos,
-        filteredProdutos: produtos,
-        produtosPorCategoria: _groupProdutosByCategoria(produtos),
-        availableCategories: categories,
-        selectedCategories: categories,
-        searchQuery: '',
-      ));
+        emit(LojaHomeLoaded(
+          loja: loja,
+          produtos: _todosProdutos,
+          produtosPorCategoria: _agruparPorCategoria(_todosProdutos),
+          selectedCategories: _selectedCategories,
+          activeFilterCount: _selectedCategories.length,
+          hasMore: _hasMore,
+          currentPage: _currentPage,
+        ));
+      } else {
+        emit(LojaHomeError('Erro ao carregar dados'));
+      }
     } catch (e) {
-      emit(LojaHomeError(e.toString()));
+      emit(LojaHomeError('Erro de conexão: $e'));
     }
   }
 
-  void searchQueryChanged(String query) {
-    if (state is! LojaHomeLoaded) return;
-    final currentState = state as LojaHomeLoaded;
-    emit(currentState.copyWith(searchQuery: query));
-    _applyFiltersAndSearch();
-  }
+  Future<void> loadMoreProdutos() async {
+    if (!_hasMore || state is LojaHomeLoadingMore) return;
 
-  void toggleCategoryFilter(String category) {
-    if (state is! LojaHomeLoaded) return;
-    final currentState = state as LojaHomeLoaded;
-    final currentSelected = currentState.selectedCategories.toSet();
+    final currentState = state;
+    if (currentState is! LojaHomeLoaded) return;
 
-    if (currentSelected.contains(category)) {
-      currentSelected.remove(category);
-    } else {
-      currentSelected.add(category);
-    }
-    emit(currentState.copyWith(selectedCategories: currentSelected));
-    _applyFiltersAndSearch();
-  }
-
-  void _applyFiltersAndSearch() {
-    if (state is! LojaHomeLoaded) return;
-    final currentState = state as LojaHomeLoaded;
-
-    List<Produto> tempProdutos = List.from(currentState.allProdutos);
-
-    if (currentState.selectedCategories.isNotEmpty && currentState.selectedCategories.length < currentState.availableCategories.length) {
-      tempProdutos = tempProdutos.where((p) => currentState.selectedCategories.contains(p.categoria)).toList();
-    }
-
-    if (currentState.searchQuery.isNotEmpty) {
-      tempProdutos = tempProdutos.where((p) => p.nome.toLowerCase().contains(currentState.searchQuery.toLowerCase())).toList();
-    }
-
-    emit(currentState.copyWith(
-      filteredProdutos: tempProdutos,
-      produtosPorCategoria: _groupProdutosByCategoria(tempProdutos),
+    emit(LojaHomeLoadingMore(
+      loja: currentState.loja,
+      produtos: currentState.produtos,
+      produtosPorCategoria: currentState.produtosPorCategoria,
+      selectedCategories: currentState.selectedCategories,
+      activeFilterCount: currentState.activeFilterCount,
+      hasMore: currentState.hasMore,
+      currentPage: currentState.currentPage,
     ));
+    
+    try {
+      final response = await _apiClient.get(
+        '/app/loja/$lojaId/produtos',
+        queryParameters: {
+          'page': _currentPage + 1,
+          'per_page': 10,
+          if (_searchQuery != null && _searchQuery!.isNotEmpty) 'search': _searchQuery,
+          if (_selectedCategories.isNotEmpty) 'categoria': _selectedCategories.join(','),
+        },
+      );
+
+      if (response.data['success'] == true) {
+        final items = List<Map<String, dynamic>>.from(response.data['data']['items']);
+        final pagination = response.data['data']['pagination'];
+        final novosProdutos = items.map((json) => Produto.fromJson(json)).toList();
+        
+        _todosProdutos = [..._todosProdutos, ...novosProdutos];
+        _currentPage = pagination['page'];
+        _hasMore = _currentPage < pagination['total_pages'];
+
+        emit(LojaHomeLoaded(
+          loja: currentState.loja,
+          produtos: _todosProdutos,
+          produtosPorCategoria: _agruparPorCategoria(_todosProdutos),
+          selectedCategories: _selectedCategories,
+          activeFilterCount: _selectedCategories.length,
+          hasMore: _hasMore,
+          currentPage: _currentPage,
+        ));
+      }
+    } catch (e) {
+      emit(LojaHomeError('Erro ao carregar mais produtos'));
+    }
   }
 
-  Map<String, List<Produto>> _groupProdutosByCategoria(List<Produto> produtos) {
-    return groupBy(produtos, (Produto p) => p.categoria);
+  Future<void> searchQueryChanged(String query) async {
+    _searchQuery = query.trim().isEmpty ? null : query;
+    await _applyCurrentFiltersAndSearch();
+  }
+
+  // 🏷️ APLICAR FILTROS (múltiplos de uma vez)
+  Future<void> applyFilters(Set<String> categories) async {
+    _selectedCategories = categories.toList();
+    await _applyCurrentFiltersAndSearch();
+  }
+
+  Future<void> _applyCurrentFiltersAndSearch() async {
+    _currentPage = 1;
+    _hasMore = true;
+    _todosProdutos = [];
+    
+    Loja? currentLoja;
+    if (state is LojaHomeLoaded) {
+      currentLoja = (state as LojaHomeLoaded).loja;
+    }
+
+    emit(LojaHomeLoading());
+    
+    try {
+      final response = await _apiClient.get(
+        '/app/loja/$lojaId/produtos',
+        queryParameters: {
+          'page': 1,
+          'per_page': 10,
+          if (_searchQuery != null && _searchQuery!.isNotEmpty) 'search': _searchQuery,
+          if (_selectedCategories.isNotEmpty) 'categoria': _selectedCategories.join(','),
+        },
+      );
+
+      if (response.data['success'] == true) {
+        final items = List<Map<String, dynamic>>.from(response.data['data']['items']);
+        final pagination = response.data['data']['pagination'];
+        
+        _todosProdutos = items.map((json) => Produto.fromJson(json)).toList();
+        _currentPage = pagination['page'];
+        _hasMore = _currentPage < pagination['total_pages'];
+
+        if (currentLoja != null) {
+          emit(LojaHomeLoaded(
+            loja: currentLoja,
+            produtos: _todosProdutos,
+            produtosPorCategoria: _agruparPorCategoria(_todosProdutos),
+            selectedCategories: _selectedCategories,
+            activeFilterCount: _selectedCategories.length,
+            hasMore: _hasMore,
+            currentPage: _currentPage,
+          ));
+        } else {
+          await fetchLojaDetails();
+        }
+      }
+    } catch (e) {
+      emit(LojaHomeError('Erro ao aplicar filtros ou busca: $e'));
+    }
+  }
+
+  // 🏷️ FILTRAR POR CATEGORIA (individual)
+  void toggleCategoryFilter(String categoria) {
+    if (_selectedCategories.contains(categoria)) {
+      _selectedCategories.remove(categoria);
+    } else {
+      _selectedCategories.add(categoria);
+    }
+    _applyCurrentFiltersAndSearch();
+  }
+
+  Map<String, List<Produto>> _agruparPorCategoria(List<Produto> produtos) {
+    final agrupados = <String, List<Produto>>{};
+    for (var p in produtos) {
+      final cat = p.categoria;
+      if (!agrupados.containsKey(cat)) agrupados[cat] = [];
+      agrupados[cat]!.add(p);
+    }
+    return agrupados;
+  }
+
+  Future<void> refresh() async {
+    _currentPage = 1;
+    _hasMore = true;
+    _searchQuery = null;
+    _selectedCategories = [];
+    _todosProdutos = [];
+    await fetchLojaDetails();
   }
 }

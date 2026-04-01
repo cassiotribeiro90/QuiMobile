@@ -1,76 +1,83 @@
 import 'package:equatable/equatable.dart';
-import '../../../models/produto_model.dart';
 import '../../lojas/models/loja.dart';
+import '../../../models/produto_model.dart';
 
 abstract class LojaHomeState extends Equatable {
   const LojaHomeState();
-
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class LojaHomeInitial extends LojaHomeState {}
 
 class LojaHomeLoading extends LojaHomeState {}
 
+class LojaHomeError extends LojaHomeState {
+  final String message;
+  const LojaHomeError(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
 class LojaHomeLoaded extends LojaHomeState {
   final Loja loja;
-  final List<Produto> allProdutos;
-  final List<Produto> filteredProdutos;
+  final List<Produto> produtos;
   final Map<String, List<Produto>> produtosPorCategoria;
-  final Set<String> availableCategories;
-  final Set<String> selectedCategories;
-  final String searchQuery;
+  final List<String> selectedCategories;
+  final int activeFilterCount;
+  final bool hasMore;
+  final int currentPage;
 
   const LojaHomeLoaded({
     required this.loja,
-    required this.allProdutos,
-    required this.filteredProdutos,
+    required this.produtos,
     required this.produtosPorCategoria,
-    required this.availableCategories,
     required this.selectedCategories,
-    required this.searchQuery,
+    required this.activeFilterCount,
+    required this.hasMore,
+    required this.currentPage,
   });
 
-  int get activeFilterCount => selectedCategories.length;
+  @override
+  List<Object?> get props => [
+        loja,
+        produtos,
+        produtosPorCategoria,
+        selectedCategories,
+        activeFilterCount,
+        hasMore,
+        currentPage,
+      ];
 
   LojaHomeLoaded copyWith({
     Loja? loja,
-    List<Produto>? allProdutos,
-    List<Produto>? filteredProdutos,
+    List<Produto>? produtos,
     Map<String, List<Produto>>? produtosPorCategoria,
-    Set<String>? availableCategories,
-    Set<String>? selectedCategories,
-    String? searchQuery,
+    List<String>? selectedCategories,
+    int? activeFilterCount,
+    bool? hasMore,
+    int? currentPage,
   }) {
     return LojaHomeLoaded(
       loja: loja ?? this.loja,
-      allProdutos: allProdutos ?? this.allProdutos,
-      filteredProdutos: filteredProdutos ?? this.filteredProdutos,
+      produtos: produtos ?? this.produtos,
       produtosPorCategoria: produtosPorCategoria ?? this.produtosPorCategoria,
-      availableCategories: availableCategories ?? this.availableCategories,
       selectedCategories: selectedCategories ?? this.selectedCategories,
-      searchQuery: searchQuery ?? this.searchQuery,
+      activeFilterCount: activeFilterCount ?? this.activeFilterCount,
+      hasMore: hasMore ?? this.hasMore,
+      currentPage: currentPage ?? this.currentPage,
     );
   }
-
-  @override
-  List<Object> get props => [
-        loja,
-        allProdutos,
-        filteredProdutos,
-        produtosPorCategoria,
-        availableCategories,
-        selectedCategories,
-        searchQuery,
-      ];
 }
 
-class LojaHomeError extends LojaHomeState {
-  final String message;
-
-  const LojaHomeError(this.message);
-
-  @override
-  List<Object> get props => [message];
+class LojaHomeLoadingMore extends LojaHomeLoaded {
+  const LojaHomeLoadingMore({
+    required super.loja,
+    required super.produtos,
+    required super.produtosPorCategoria,
+    required super.selectedCategories,
+    required super.activeFilterCount,
+    required super.hasMore,
+    required super.currentPage,
+  });
 }

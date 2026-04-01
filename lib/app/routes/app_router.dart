@@ -6,6 +6,10 @@ import 'package:qui/app/modules/auth/views/login_screen.dart';
 import 'package:qui/app/modules/home/views/home_screen.dart';
 import 'package:qui/app/modules/lojas/bloc/lojas_cubit.dart';
 import 'package:qui/app/modules/auth/views/splash_screen.dart';
+import 'package:qui/app/modules/perfil/views/perfil_view.dart';
+import 'package:qui/app/modules/perfil/views/enderecos_view.dart';
+import 'package:qui/app/modules/perfil/views/pedidos_view.dart';
+import '../modules/home/bloc/address_cubit.dart';
 import '../modules/home/bloc/home_cubit.dart';
 import '../modules/loja_home/bloc/loja_home_cubit.dart';
 import '../modules/loja_home/views/loja_home_view.dart';
@@ -34,9 +38,7 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => MultiBlocProvider(
             providers: [
-              BlocProvider.value(value: getIt<AuthCubit>()),
               BlocProvider.value(value: getIt<HomeCubit>()),
-              BlocProvider.value(value: getIt<LojasCubit>()),
             ],
             child: const HomeScreen(),
           ),
@@ -50,6 +52,15 @@ class AppRouter {
             child: const LojaHomeView(),
           ),
         );
+
+      case Routes.PERFIL:
+        return MaterialPageRoute(builder: (_) => const PerfilView());
+      
+      case Routes.ENDERECOS:
+        return MaterialPageRoute(builder: (_) => const EnderecosView());
+
+      case Routes.PEDIDOS:
+        return MaterialPageRoute(builder: (_) => const PedidosView());
 
       default:
         return _errorRoute();

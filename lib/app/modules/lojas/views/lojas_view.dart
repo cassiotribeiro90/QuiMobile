@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../widgets/common/app_text.dart';
-import '../bloc/lojas_cubit.dart';
-import '../bloc/lojas_state.dart';
-import '../models/loja.dart';
-import 'loja_item_widget.dart';
+import 'package:qui/app/modules/lojas/bloc/lojas_cubit.dart';
+import 'package:qui/app/modules/lojas/bloc/lojas_state.dart';
+import 'package:qui/app/modules/home/bloc/address_cubit.dart';
+import 'package:qui/app/modules/lojas/widgets/custom_home_app_bar.dart';
+import 'package:qui/app/modules/lojas/widgets/filter_search_bottom_sheet.dart';
+import 'package:qui/app/modules/lojas/views/loja_item_widget.dart';
 
 class LojasView extends StatefulWidget {
   const LojasView({super.key});
@@ -14,94 +15,232 @@ class LojasView extends StatefulWidget {
 }
 
 class _LojasViewState extends State<LojasView> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    final cubit = context.read<LojasCubit>();
-    if (cubit.state is LojasInitial) {
-      cubit.fetchLojas();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AddressCubit>().getCurrentLocation();
+      context.read<LojasCubit>().fetchLojas();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      final cubit = context.read<LojasCubit>();
+      final state = cubit.state;
+      if (cubit.hasMorePages && state is LojasLoaded && !state.isLoadingMore) {
+        cubit.fetchLojas(page: cubit.currentPage + 1, isLoadMore: true);
+      }
     }
   }
 
-  Future<void> _onRefresh() async {
-    context.read<LojasCubit>().fetchLojas(page: 1);
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BlocProvider.value(
+        value: context.read<LojasCubit>(),
+        child: FilterSearchBottomSheet(
+          onApplyFilters: (search, categoria, ordenacao) {
+            context.read<LojasCubit>().applyFilters(
+              search: search,
+              categoria: categoria,
+              ordenacao: ordenacao,
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<LojasCubit, LojasState>(
-      listener: (context, state) {
-        if (state is LojasError) {
-          if (mounted) {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  action: SnackBarAction(
-                    label: 'Tentar Novamente',
-                    onPressed: _onRefresh,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: CustomHomeAppBar(
+        onAddressTap: () {
+          // TODO: Implementar gerenciamento de endereços
+        },
+        onSearchTap: _showFilterBottomSheet,
+        onProfileTap: () {
+          Navigator.pushNamed(context, '/perfil');
+        },
+      ),
+      body: BlocBuilder<LojasCubit, LojasState>(
+        builder: (context, state) {
+          if (state is LojasLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is LojasError) {
+            return Center(child: Text(state.message));
+          }
+
+          if (state is LojasLoaded) {
+            return Column(
+              children: [
+                _buildFilterSummary(state),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => context.read<LojasCubit>().refreshList(),
+                    child: state.lojasFiltradas.isEmpty
+                        ? _buildEmptyState(state)
+                        : ListView.separated(
+                            controller: _scrollController,
+                            itemCount: state.lojasFiltradas.length + (state.isLoadingMore ? 1 : 0),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              if (index == state.lojasFiltradas.length) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+                              return LojaItemWidget(loja: state.lojasFiltradas[index]);
+                            },
+                          ),
                   ),
                 ),
-              );
-          }
-        }
-      },
-      builder: (context, state) {
-        if (state is LojasInitial || state is LojasLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (state is LojasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AppText(
-                  state.message,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                  textAlign: TextAlign.center,
-                  margin: const EdgeInsets.symmetric(horizontal: 18.0),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _onRefresh,
-                  child: const Text('Tentar Novamente'),
-                )
               ],
-            ),
-          );
-        }
-
-        if (state is LojasLoaded) {
-          if (state.lojas.isEmpty) {
-            return Center(
-              child: AppText(
-                'Nenhuma loja encontrada na sua região.',
-                style: Theme.of(context).textTheme.bodyLarge,
-                margin: const EdgeInsets.symmetric(horizontal: 18.0),
-              ),
             );
           }
-          return RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: _buildLojasList(state.lojas),
-          );
-        }
 
-        return const SizedBox.shrink();
-      },
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
-  Widget _buildLojasList(List<Loja> lojas) {
-    return ListView.separated(
-      itemCount: lojas.length,
-      padding: const EdgeInsets.all(4.0),
-      separatorBuilder: (context, index) => const SizedBox(height: 4),
-      itemBuilder: (context, index) {
-        return LojaItemWidget(loja: lojas[index]);
-      },
+  Widget _buildFilterSummary(LojasLoaded state) {
+    final filterSummary = _getFilterSummary(state);
+    final hasActiveFilters = filterSummary.isNotEmpty;
+
+    return GestureDetector(
+      onTap: _showFilterBottomSheet,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.search,
+              size: 20,
+              color: hasActiveFilters ? Colors.orange[700] : Colors.grey[500],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                hasActiveFilters ? filterSummary : 'O que você quer comer?',
+                style: TextStyle(
+                  color: hasActiveFilters ? Colors.orange[700] : Colors.grey[500],
+                  fontSize: 14,
+                  fontWeight: hasActiveFilters ? FontWeight.w500 : FontWeight.normal,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (hasActiveFilters)
+              GestureDetector(
+                onTap: () => context.read<LojasCubit>().clearAllFilters(),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: Colors.orange[700],
+                  ),
+                ),
+              )
+            else
+              Icon(
+                Icons.edit_outlined,
+                size: 18,
+                color: Colors.grey[400],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getFilterSummary(LojasLoaded state) {
+    final List<String> parts = [];
+
+    if (state.searchQuery != null && state.searchQuery!.isNotEmpty) {
+      parts.add(state.searchQuery!);
+    }
+
+    if (state.categoriaSelecionada != null) {
+      // Remove emojis do label se necessário, mas aqui vamos buscar do state.categorias se o state.categoriaSelecionada for o value
+      final cat = state.categorias.firstWhere((c) => c.value == state.categoriaSelecionada, 
+          orElse: () => state.categorias.isNotEmpty ? state.categorias.first : state.categorias.first);
+      final categoriaClean = cat.label.replaceAll(RegExp(r'[^\w\s]'), '').trim();
+      parts.add(categoriaClean);
+    }
+
+    if (state.ordenacaoAtual != null) {
+      parts.add(_getOrdenacaoLabel(state.ordenacaoAtual!));
+    }
+
+    if (parts.isEmpty) return '';
+
+    return parts.join(' • ');
+  }
+
+  String _getOrdenacaoLabel(String ordenacao) {
+    switch (ordenacao) {
+      case 'nota':
+        return 'Melhor nota';
+      case 'tempo_entrega':
+        return 'Mais rápido';
+      case 'distancia':
+        return 'Mais próximo';
+      default:
+        return ordenacao;
+    }
+  }
+
+  Widget _buildEmptyState(LojasLoaded state) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.restaurant_menu, size: 48, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'Nenhuma loja encontrada',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton(
+            onPressed: () => context.read<LojasCubit>().clearAllFilters(),
+            child: const Text('Limpar filtros'),
+          ),
+        ],
+      ),
     );
   }
 }

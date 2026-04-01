@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../models/produto_model.dart';
 import '../../../theme/app_theme.dart';
 import '../../apparte/widgets/product_card.dart';
 import '../bloc/loja_home_cubit.dart';
@@ -20,6 +19,7 @@ class _LojaHomeViewState extends State<LojaHomeView> {
   final FocusNode _searchFocus = FocusNode();
   bool _isHeaderCollapsed = false;
   final ScrollController _scrollController = ScrollController();
+  LojaHomeLoaded? _lastLoadedState;
 
   @override
   void initState() {
@@ -50,17 +50,20 @@ class _LojaHomeViewState extends State<LojaHomeView> {
   void _openFilterModal() {
     final cubit = context.read<LojaHomeCubit>();
     final state = cubit.state;
-    if (state is! LojaHomeLoaded) return;
+    
+    // Pegamos os filtros do último estado carregado se o atual for Loading
+    final currentLoaded = state is LojaHomeLoaded ? state : _lastLoadedState;
+    if (currentLoaded == null) return;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => FilterModal(
-        selectedCategories: state.selectedCategories,
-        priceRange: const RangeValues(0, 150), // Exemplo fixo por enquanto
+        selectedCategories: Set.from(currentLoaded.selectedCategories),
+        priceRange: const RangeValues(0, 150),
         onApply: (categories, range) {
-          // Implementar lógica de aplicação se necessário ou via Cubit
+          cubit.applyFilters(categories);
         },
       ),
     );
@@ -69,14 +72,30 @@ class _LojaHomeViewState extends State<LojaHomeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: BlocBuilder<LojaHomeCubit, LojaHomeState>(
-        builder: (context, state) {
-          if (state is LojaHomeLoading || state is LojaHomeInitial) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is LojaHomeError) {
-            return Center(child: Text(state.message));
-          } else if (state is LojaHomeLoaded) {
-            final loja = state.loja;
+      body: BlocListener<LojaHomeCubit, LojaHomeState>(
+        listener: (context, state) {
+          if (state is LojaHomeError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
+          }
+        },
+        child: BlocBuilder<LojaHomeCubit, LojaHomeState>(
+          builder: (context, state) {
+            if (state is LojaHomeLoaded) {
+              _lastLoadedState = state;
+            }
+
+            if (_lastLoadedState == null && (state is LojaHomeLoading || state is LojaHomeInitial)) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is LojaHomeError && _lastLoadedState == null) {
+              return Center(child: Text(state.message));
+            }
+
+            // Usamos o último estado carregado para manter a UI estável durante a busca
+            final loadedState = state is LojaHomeLoaded ? state : _lastLoadedState!;
+            final loja = loadedState.loja;
+            final isSearching = state is LojaHomeLoading;
 
             return CustomScrollView(
               controller: _scrollController,
@@ -182,7 +201,7 @@ class _LojaHomeViewState extends State<LojaHomeView> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                           decoration: BoxDecoration(
-                                            color: Colors.green, // Mock simplificado
+                                            color: Colors.green,
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: const Text(
@@ -206,36 +225,64 @@ class _LojaHomeViewState extends State<LojaHomeView> {
                   pinned: true,
                   delegate: _SearchHeaderDelegate(
                     controller: _searchController,
+                    searchText: _searchController.text,
                     focusNode: _searchFocus,
                     onFilterTap: _openFilterModal,
-                    selectedFiltersCount: state.activeFilterCount,
-                    onChanged: (value) => context.read<LojaHomeCubit>().searchQueryChanged(value),
+                    selectedFiltersCount: loadedState.activeFilterCount,
+                    onChanged: (value) {
+                      context.read<LojaHomeCubit>().searchQueryChanged(value);
+                      setState(() {}); // Garante que o botão de limpar atualize
+                    },
                   ),
                 ),
+                if (isSearching)
+                  const SliverToBoxAdapter(
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
                 SliverPadding(
                   padding: const EdgeInsets.all(16),
-                  sliver: _buildProdutosSliver(context, state.produtosPorCategoria),
+                  sliver: _buildProdutosSliver(context, loadedState),
                 ),
               ],
             );
-          }
-          return const SizedBox.shrink();
-        },
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildProdutosSliver(
-      BuildContext context,
-      Map<String, List<Produto>> produtosPorCategoria,
-      ) {
-    final categorias = produtosPorCategoria.keys.toList();
+  Widget _buildProdutosSliver(BuildContext context, LojaHomeLoaded state) {
+    final categorias = state.produtosPorCategoria.keys.toList();
+
+    if (categorias.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Text('Nenhum produto encontrado'),
+        ),
+      );
+    }
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
-            (context, index) {
+        (context, index) {
+          if (index >= categorias.length) {
+            if (state.hasMore) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.read<LojaHomeCubit>().loadMoreProdutos();
+              });
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            return const SizedBox();
+          }
+
           final categoria = categorias[index];
-          final produtos = produtosPorCategoria[categoria]!;
+          final produtos = state.produtosPorCategoria[categoria]!;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,7 +302,7 @@ class _LojaHomeViewState extends State<LojaHomeView> {
             ],
           );
         },
-        childCount: categorias.length,
+        childCount: categorias.length + 1,
       ),
     );
   }
@@ -263,6 +310,7 @@ class _LojaHomeViewState extends State<LojaHomeView> {
 
 class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   final TextEditingController controller;
+  final String searchText;
   final FocusNode focusNode;
   final VoidCallback onFilterTap;
   final int selectedFiltersCount;
@@ -270,6 +318,7 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   _SearchHeaderDelegate({
     required this.controller,
+    required this.searchText,
     required this.focusNode,
     required this.onFilterTap,
     required this.selectedFiltersCount,
@@ -381,6 +430,6 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _SearchHeaderDelegate oldDelegate) {
     return oldDelegate.selectedFiltersCount != selectedFiltersCount ||
-        oldDelegate.controller.text != controller.text;
+        oldDelegate.searchText != searchText;
   }
 }

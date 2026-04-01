@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_theme.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/loja_home_cubit.dart';
 
 class FilterModal extends StatefulWidget {
   final Set<String> selectedCategories;
@@ -21,14 +22,14 @@ class _FilterModalState extends State<FilterModal> {
   late Set<String> _tempSelectedCategories;
   late RangeValues _tempPriceRange;
 
-  // Categorias de exemplo (depois viriam do repository)
+  // Categorias disponíveis
   final List<String> _availableCategories = [
-    'Hambúrgueres',
-    'Porções',
+    'Pizzas',
     'Bebidas',
     'Sobremesas',
-    'Combos',
-    'Vegetariano',
+    'Hambúrgueres',
+    'Massas',
+    'Entradas',
   ];
 
   @override
@@ -40,17 +41,22 @@ class _FilterModalState extends State<FilterModal> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Alça do modal
+          // Handle
           Container(
-            margin: const EdgeInsets.only(top: 8),
+            margin: const EdgeInsets.only(top: 12),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
@@ -58,96 +64,80 @@ class _FilterModalState extends State<FilterModal> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-
-          // Título
+          
+          // Header
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Filtrar',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  'Filtrar Cardápio',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _tempSelectedCategories.clear();
-                      _tempPriceRange = const RangeValues(0, 150);
-                    });
-                  },
-                  child: const Text('Limpar'),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
           ),
-
-          Expanded(
+          
+          const Divider(height: 1),
+          
+          // Conteúdo
+          Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Categorias
+                  // Seção de Categorias
                   const Text(
                     'Categorias',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _availableCategories.map((category) {
-                      final isSelected = _tempSelectedCategories.contains(category);
+                    children: _availableCategories.map((categoria) {
+                      final isSelected = _tempSelectedCategories.contains(categoria);
                       return FilterChip(
-                        label: Text(category),
+                        label: Text(categoria),
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
                             if (selected) {
-                              _tempSelectedCategories.add(category);
+                              _tempSelectedCategories.add(categoria);
                             } else {
-                              _tempSelectedCategories.remove(category);
+                              _tempSelectedCategories.remove(categoria);
                             }
                           });
                         },
                         backgroundColor: Colors.grey[100],
-                        selectedColor: AppTheme.primaryColor.withOpacity(0.1),
-                        checkmarkColor: AppTheme.primaryColor,
-                        labelStyle: TextStyle(
-                          color: isSelected ? AppTheme.primaryColor : Colors.grey[800],
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        ),
+                        selectedColor: theme.colorScheme.primary.withOpacity(0.2),
+                        checkmarkColor: theme.colorScheme.primary,
                       );
                     }).toList(),
                   ),
-
+                  
                   const SizedBox(height: 24),
-
-                  // Faixa de preço
+                  
+                  // Seção de Faixa de Preço
                   const Text(
-                    'Faixa de preço',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    'Faixa de Preço',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   RangeSlider(
                     values: _tempPriceRange,
                     min: 0,
                     max: 150,
-                    divisions: 30,
-                    activeColor: AppTheme.primaryColor,
+                    divisions: 15,
                     labels: RangeLabels(
-                      'R\$ ${_tempPriceRange.start.round()}',
-                      'R\$ ${_tempPriceRange.end.round()}',
+                      'R\$ ${_tempPriceRange.start.toStringAsFixed(0)}',
+                      'R\$ ${_tempPriceRange.end.toStringAsFixed(0)}',
                     ),
                     onChanged: (values) {
                       setState(() {
@@ -155,73 +145,38 @@ class _FilterModalState extends State<FilterModal> {
                       });
                     },
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'R\$ ${_tempPriceRange.start.toStringAsFixed(0)}',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      Text(
-                        'R\$ ${_tempPriceRange.end.toStringAsFixed(0)}',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Ordenação
-                  const Text(
-                    'Ordenar por',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildOrderOption('Recomendados', true),
-                  _buildOrderOption('Menor preço', false),
-                  _buildOrderOption('Maior preço', false),
-                  _buildOrderOption('Melhor avaliação', false),
                 ],
               ),
             ),
           ),
-
-          // Botões de ação
+          
+          const Divider(height: 1),
+          
+          // Botões
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: Colors.grey),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Cancelar'),
+                  child: TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _tempSelectedCategories.clear();
+                        _tempPriceRange = const RangeValues(0, 150);
+                      });
+                    },
+                    child: const Text('Limpar'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
+                      // ✅ APLICAR FILTROS
+                      context.read<LojaHomeCubit>().applyFilters(_tempSelectedCategories);
                       widget.onApply(_tempSelectedCategories, _tempPriceRange);
                       Navigator.pop(context);
                     },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
                     child: const Text('Aplicar'),
                   ),
                 ),
@@ -230,17 +185,6 @@ class _FilterModalState extends State<FilterModal> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildOrderOption(String label, bool isSelected) {
-    return RadioListTile(
-      title: Text(label),
-      value: label,
-      groupValue: isSelected ? label : null,
-      onChanged: (value) {},
-      activeColor: AppTheme.primaryColor,
-      contentPadding: EdgeInsets.zero,
     );
   }
 }

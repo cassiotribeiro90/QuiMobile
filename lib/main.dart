@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'app/di/dependencies.dart';
-import 'app/modules/auth/bloc/auth_cubit.dart';
-import 'app/routes/app_router.dart';
-import 'app/routes/app_routes.dart';
-import 'app/theme/app_theme.dart';
-import 'app/theme/theme_cubit.dart';
-import 'shared/auth/auth_observer.dart'; // Removido temporariamente
+import 'package:qui/app/di/dependencies.dart';
+import 'package:qui/app/modules/auth/bloc/auth_cubit.dart';
+import 'package:qui/app/modules/home/bloc/address_cubit.dart';
+import 'package:qui/app/modules/lojas/bloc/lojas_cubit.dart';
+import 'package:qui/app/routes/app_router.dart';
+import 'package:qui/app/routes/app_routes.dart';
+import 'package:qui/app/core/theme/app_theme.dart';
+import 'package:qui/app/theme/theme_cubit.dart';
+import 'package:qui/shared/auth/auth_observer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +25,8 @@ class QuiPedeApp extends StatelessWidget {
       providers: [
         BlocProvider<ThemeCubit>(create: (_) => getIt<ThemeCubit>()),
         BlocProvider<AuthCubit>(create: (_) => getIt<AuthCubit>()),
+        BlocProvider<AddressCubit>(create: (_) => getIt<AddressCubit>()),
+        BlocProvider<LojasCubit>(create: (_) => getIt<LojasCubit>()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
@@ -30,30 +34,12 @@ class QuiPedeApp extends StatelessWidget {
             title: 'QuiPede',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
             themeMode: themeState.themeMode,
             initialRoute: Routes.SPLASH,
             onGenerateRoute: AppRouter.onGenerateRoute,
-            navigatorObservers: [AuthObserver()], // Comentado para teste
+            navigatorObservers: [AuthObserver()],
             builder: (context, child) {
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth > 800) {
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1000),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.symmetric(vertical: BorderSide(color: Colors.grey[200]!)),
-                          ),
-                          child: child,
-                        ),
-                      ),
-                    );
-                  }
-                  return child!;
-                },
-              );
+              return child!;
             },
           );
         },
