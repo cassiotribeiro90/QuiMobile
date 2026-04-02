@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../app/core/theme/app_theme_extension.dart';
 import '../models/produto_model.dart';
+import '../../../core/theme/app_theme_extension.dart';
 
 class ProdutoCardWidget extends StatelessWidget {
   final ProdutoModel produto;
@@ -15,13 +15,16 @@ class ProdutoCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context;
-    final textStyles = context;
-
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          border: Border(
+            bottom: BorderSide(color: context.dividerColor),
+          ),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -31,32 +34,37 @@ class ProdutoCardWidget extends StatelessWidget {
                 children: [
                   if (produto.destaque)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: colors.primaryColor.withOpacity(0.1),
+                        color: Colors.orange[100],
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(
-                        'DESTAQUE',
-                        style: textStyles.caption.copyWith(
-                          color: colors.primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.fireplace, size: 12, color: Colors.orange),
+                          const SizedBox(width: 4),
+                          Text(
+                            'DESTAQUE',
+                            style: context.bodySmall.copyWith(
+                              color: Colors.orange[900],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   Text(
                     produto.nome,
-                    style: textStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    style: context.bodyLarge.copyWith(fontWeight: FontWeight.bold),
                   ),
                   if (produto.descricao != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       produto.descricao!,
-                      style: textStyles.bodySmall.copyWith(color: colors.textSecondary),
+                      style: context.bodySmall,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -67,21 +75,46 @@ class ProdutoCardWidget extends StatelessWidget {
                       if (produto.precoPromocional != null) ...[
                         Text(
                           'R\$ ${produto.precoPromocional!.toStringAsFixed(2)}',
-                          style: textStyles.price.copyWith(color: colors.successColor),
+                          style: context.bodyMedium.copyWith(
+                            color: context.successColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'R\$ ${produto.preco.toStringAsFixed(2)}',
-                          style: textStyles.bodySmall.copyWith(
+                          style: context.bodySmall.copyWith(
                             decoration: TextDecoration.lineThrough,
-                            color: colors.textHint,
                           ),
                         ),
                       ] else
                         Text(
                           'R\$ ${produto.preco.toStringAsFixed(2)}',
-                          style: textStyles.price,
+                          style: context.bodyMedium.copyWith(
+                            color: context.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.timer_outlined, size: 14, color: context.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${produto.tempoPreparo} min',
+                        style: context.bodySmall,
+                      ),
+                      if (produto.notaMedia > 0) ...[
+                        const SizedBox(width: 8),
+                        Icon(Icons.star, size: 14, color: context.ratingColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          produto.notaMedia.toString(),
+                          style: context.bodySmall.copyWith(color: context.ratingColor, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -93,10 +126,10 @@ class ProdutoCardWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 child: CachedNetworkImage(
                   imageUrl: produto.imagem!,
-                  width: 80,
-                  height: 80,
+                  width: 100,
+                  height: 100,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(color: colors.surfaceColor),
+                  placeholder: (context, url) => Container(color: Colors.grey[200]),
                   errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
                 ),
               ),

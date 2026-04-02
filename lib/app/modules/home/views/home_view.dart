@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qui/app/di/dependencies.dart';
+import '../../../di/dependencies.dart';
 import '../../../widgets/common/app_text.dart';
 import '../../lojas/bloc/lojas_cubit.dart';
 import '../../lojas/views/loja_view.dart';

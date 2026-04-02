@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'secao_produto_model.dart';
+import 'produto_model.dart';
+import 'pagination_model.dart';
+import 'filter_options_model.dart';
 
 class LojaDetalheModel extends Equatable {
   final int id;
@@ -22,7 +24,8 @@ class LojaDetalheModel extends Equatable {
   final String status;
   final String fluxoStatus;
   final String corTema;
-  final List<SecaoProdutoModel> secoes;
+  final List<ProdutoModel> items;
+  final PaginationModel pagination;
   final LojaFilterOptions filterOptions;
 
   const LojaDetalheModel({
@@ -46,36 +49,38 @@ class LojaDetalheModel extends Equatable {
     required this.status,
     required this.fluxoStatus,
     required this.corTema,
-    required this.secoes,
+    required this.items,
+    required this.pagination,
     required this.filterOptions,
   });
 
   factory LojaDetalheModel.fromJson(Map<String, dynamic> json) {
     return LojaDetalheModel(
-      id: json['id'],
-      nome: json['nome'],
-      descricao: json['descricao'],
-      slug: json['slug'],
-      categoria: json['categoria'],
-      logo: json['logo'],
-      capa: json['capa'],
-      enderecoCompleto: json['endereco_completo'],
-      enderecoResumido: json['endereco_resumido'],
-      notaMedia: (json['nota_media'] as num).toDouble(),
-      totalAvaliacoes: json['total_avaliacoes'],
-      tempoEntregaMin: json['tempo_entrega_min'],
-      tempoEntregaMax: json['tempo_entrega_max'],
-      taxaEntrega: (json['taxa_entrega'] as num).toDouble(),
-      pedidoMinimo: (json['pedido_minimo'] as num).toDouble(),
-      destaque: json['destaque'],
-      verificado: json['verificado'],
-      status: json['status'],
-      fluxoStatus: json['fluxo_status'],
-      corTema: json['cor_tema'],
-      secoes: (json['secoes'] as List)
-          .map((e) => SecaoProdutoModel.fromJson(e))
+      id: json['id'] as int,
+      nome: json['nome'] as String,
+      descricao: json['descricao'] as String?,
+      slug: json['slug'] as String,
+      categoria: json['categoria'] as String,
+      logo: json['logo'] as String,
+      capa: json['capa'] as String,
+      enderecoCompleto: (json['endereco_completo'] ?? json['enderecoCompleto']) as String,
+      enderecoResumido: (json['endereco_resumido'] ?? json['enderecoResumido']) as String,
+      notaMedia: (json['nota_media'] ?? 0).toDouble(),
+      totalAvaliacoes: (json['total_avaliacoes'] ?? 0) as int,
+      tempoEntregaMin: (json['tempo_entrega_min'] ?? 0) as int,
+      tempoEntregaMax: (json['tempo_entrega_max'] ?? 0) as int,
+      taxaEntrega: (json['taxa_entrega'] ?? 0).toDouble(),
+      pedidoMinimo: (json['pedido_minimo'] ?? 0).toDouble(),
+      destaque: json['destaque'] == 1 || json['destaque'] == true,
+      verificado: json['verificado'] == 1 || json['verificado'] == true,
+      status: json['status'] as String,
+      fluxoStatus: (json['fluxo_status'] ?? json['fluxoStatus']) as String,
+      corTema: (json['cor_tema'] ?? json['corTema']) as String,
+      items: (json['items'] as List? ?? [])
+          .map((e) => ProdutoModel.fromJson(e as Map<String, dynamic>))
           .toList(),
-      filterOptions: LojaFilterOptions.fromJson(json['filter_options']),
+      pagination: PaginationModel.fromJson(json['pagination'] as Map<String, dynamic>),
+      filterOptions: LojaFilterOptions.fromJson(json['filter_options'] as Map<String, dynamic>),
     );
   }
 
@@ -84,79 +89,7 @@ class LojaDetalheModel extends Equatable {
         id, nome, descricao, slug, categoria, logo, capa,
         enderecoCompleto, enderecoResumido, notaMedia, totalAvaliacoes,
         tempoEntregaMin, tempoEntregaMax, taxaEntrega, pedidoMinimo,
-        destaque, verificado, status, fluxoStatus, corTema, secoes, filterOptions
+        destaque, verificado, status, fluxoStatus, corTema, items,
+        pagination, filterOptions
       ];
-}
-
-class LojaFilterOptions extends Equatable {
-  final List<LojaFilterCategoria> categorias;
-  final List<LojaFilterOrdenacao> ordenacao;
-
-  const LojaFilterOptions({
-    required this.categorias,
-    required this.ordenacao,
-  });
-
-  factory LojaFilterOptions.fromJson(Map<String, dynamic> json) {
-    return LojaFilterOptions(
-      categorias: (json['categorias'] as List)
-          .map((e) => LojaFilterCategoria.fromJson(e))
-          .toList(),
-      ordenacao: (json['ordenacao'] as List)
-          .map((e) => LojaFilterOrdenacao.fromJson(e))
-          .toList(),
-    );
-  }
-
-  @override
-  List<Object?> get props => [categorias, ordenacao];
-}
-
-class LojaFilterCategoria extends Equatable {
-  final int id;
-  final String nome;
-  final String icone;
-  final int totalProdutos;
-
-  const LojaFilterCategoria({
-    required this.id,
-    required this.nome,
-    required this.icone,
-    required this.totalProdutos,
-  });
-
-  factory LojaFilterCategoria.fromJson(Map<String, dynamic> json) {
-    return LojaFilterCategoria(
-      id: json['id'],
-      nome: json['nome'],
-      icone: json['icone'],
-      totalProdutos: json['total_produtos'],
-    );
-  }
-
-  @override
-  List<Object?> get props => [id, nome, icone, totalProdutos];
-}
-
-class LojaFilterOrdenacao extends Equatable {
-  final String value;
-  final String label;
-  final String icon;
-
-  const LojaFilterOrdenacao({
-    required this.value,
-    required this.label,
-    required this.icon,
-  });
-
-  factory LojaFilterOrdenacao.fromJson(Map<String, dynamic> json) {
-    return LojaFilterOrdenacao(
-      value: json['value'],
-      label: json['label'],
-      icon: json['icon'],
-    );
-  }
-
-  @override
-  List<Object?> get props => [value, label, icon];
 }

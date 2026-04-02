@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import '../../lojas/models/loja.dart';
-import '../../../models/produto_model.dart';
+import '../models/loja_detalhe_model.dart';
+import '../models/produto_model.dart';
 
 abstract class LojaHomeState extends Equatable {
   const LojaHomeState();
@@ -12,31 +12,60 @@ class LojaHomeInitial extends LojaHomeState {}
 
 class LojaHomeLoading extends LojaHomeState {}
 
-class LojaHomeError extends LojaHomeState {
-  final String message;
-  const LojaHomeError(this.message);
-  @override
-  List<Object?> get props => [message];
-}
-
 class LojaHomeLoaded extends LojaHomeState {
-  final Loja loja;
-  final List<Produto> produtos;
-  final Map<String, List<Produto>> produtosPorCategoria;
-  final List<String> selectedCategories;
+  final LojaDetalheModel loja;
+  final List<ProdutoModel> produtos;
+  final Map<int, List<ProdutoModel>> produtosPorCategoria;
+  final List<int> selectedCategories;
+  final String? orderBy;
   final int activeFilterCount;
   final bool hasMore;
   final int currentPage;
+  final int totalPages;
+  final String? searchQuery;
+  final bool isLoadingMore;
 
   const LojaHomeLoaded({
     required this.loja,
     required this.produtos,
     required this.produtosPorCategoria,
     required this.selectedCategories,
+    this.orderBy,
     required this.activeFilterCount,
     required this.hasMore,
     required this.currentPage,
+    required this.totalPages,
+    this.searchQuery,
+    this.isLoadingMore = false,
   });
+
+  LojaHomeLoaded copyWith({
+    LojaDetalheModel? loja,
+    List<ProdutoModel>? produtos,
+    Map<int, List<ProdutoModel>>? produtosPorCategoria,
+    List<int>? selectedCategories,
+    String? orderBy,
+    int? activeFilterCount,
+    bool? hasMore,
+    int? currentPage,
+    int? totalPages,
+    String? searchQuery,
+    bool? isLoadingMore,
+  }) {
+    return LojaHomeLoaded(
+      loja: loja ?? this.loja,
+      produtos: produtos ?? this.produtos,
+      produtosPorCategoria: produtosPorCategoria ?? this.produtosPorCategoria,
+      selectedCategories: selectedCategories ?? this.selectedCategories,
+      orderBy: orderBy ?? this.orderBy,
+      activeFilterCount: activeFilterCount ?? this.activeFilterCount,
+      hasMore: hasMore ?? this.hasMore,
+      currentPage: currentPage ?? this.currentPage,
+      totalPages: totalPages ?? this.totalPages,
+      searchQuery: searchQuery ?? this.searchQuery,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -44,40 +73,21 @@ class LojaHomeLoaded extends LojaHomeState {
         produtos,
         produtosPorCategoria,
         selectedCategories,
+        orderBy,
         activeFilterCount,
         hasMore,
         currentPage,
+        totalPages,
+        searchQuery,
+        isLoadingMore,
       ];
-
-  LojaHomeLoaded copyWith({
-    Loja? loja,
-    List<Produto>? produtos,
-    Map<String, List<Produto>>? produtosPorCategoria,
-    List<String>? selectedCategories,
-    int? activeFilterCount,
-    bool? hasMore,
-    int? currentPage,
-  }) {
-    return LojaHomeLoaded(
-      loja: loja ?? this.loja,
-      produtos: produtos ?? this.produtos,
-      produtosPorCategoria: produtosPorCategoria ?? this.produtosPorCategoria,
-      selectedCategories: selectedCategories ?? this.selectedCategories,
-      activeFilterCount: activeFilterCount ?? this.activeFilterCount,
-      hasMore: hasMore ?? this.hasMore,
-      currentPage: currentPage ?? this.currentPage,
-    );
-  }
 }
 
-class LojaHomeLoadingMore extends LojaHomeLoaded {
-  const LojaHomeLoadingMore({
-    required super.loja,
-    required super.produtos,
-    required super.produtosPorCategoria,
-    required super.selectedCategories,
-    required super.activeFilterCount,
-    required super.hasMore,
-    required super.currentPage,
-  });
+class LojaHomeError extends LojaHomeState {
+  final String message;
+  const LojaHomeError(this.message);
+  @override
+  List<Object> get props => [message];
 }
+
+class LojaHomeLoadingMore extends LojaHomeState {}

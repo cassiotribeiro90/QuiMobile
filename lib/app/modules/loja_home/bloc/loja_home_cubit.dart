@@ -1,155 +1,104 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'loja_home_state.dart';
-import '../../../models/produto_model.dart';
-import '../../lojas/models/loja.dart';
 import '../repositories/loja_repository.dart';
+import '../models/produto_model.dart'; 
+import '../models/loja_detalhe_model.dart';
 
 class LojaHomeCubit extends Cubit<LojaHomeState> {
   final LojaHomeRepository _repository;
   final int lojaId;
   
+  int _currentPage = 1;
+  int _totalPages = 1;
   String? _searchQuery;
-  List<String> _selectedCategories = [];
+  int? _selectedCategoriaId;
   String? _orderBy;
+  List<ProdutoModel> _allProdutos = [];
 
   LojaHomeCubit(this._repository, this.lojaId) : super(LojaHomeInitial());
 
-  Future<void> fetchLojaDetails() async {
-    emit(LojaHomeLoading());
-    try {
-      // Usando o endpoint unificado /api/app/loja-home?id={id}
-      final lojaDetalhe = await _repository.getLojaDetalhe(
-        lojaId,
-        orderBy: _orderBy,
-        categoriaId: _selectedCategories.isNotEmpty ? int.tryParse(_selectedCategories.first) : null,
-      );
-
-      // Mapear LojaDetalheModel para Loja (modelo esperado pelo estado atual)
-      final loja = Loja(
-        id: lojaDetalhe.id,
-        nome: lojaDetalhe.nome,
-        logo: lojaDetalhe.logo,
-        capa: lojaDetalhe.capa,
-        categoria: lojaDetalhe.categoria,
-        cidade: '', // Campos não presentes no detalhe mas exigidos pelo construtor de Loja
-        uf: '',
-        notaMedia: lojaDetalhe.notaMedia,
-        tempoEntregaMin: lojaDetalhe.tempoEntregaMin,
-        tempoEntregaMax: lojaDetalhe.tempoEntregaMax,
-        taxaEntrega: lojaDetalhe.taxaEntrega,
-        pedidoMinimo: lojaDetalhe.pedidoMinimo,
-        verificado: lojaDetalhe.verificado,
-        destaque: lojaDetalhe.destaque,
-      );
-
-      final List<Produto> allProdutos = [];
-      final Map<String, List<Produto>> porCategoria = {};
-
-      for (var secao in lojaDetalhe.secoes) {
-        final produtosSecao = secao.produtos.map((p) => Produto(
-          id: p.id,
-          lojaId: lojaId,
-          nome: p.nome,
-          descricao: p.descricao ?? '',
-          preco: p.preco,
-          precoPromocional: p.precoPromocional,
-          categoria: secao.nome,
-          imagem: p.imagem ?? '',
-          ingredientes: const [],
-          disponivel: p.disponivel,
-          destaque: p.destaque,
-          avaliacao: p.notaMedia,
-        )).toList();
-
-        allProdutos.addAll(produtosSecao);
-        porCategoria[secao.nome] = produtosSecao;
+  Future<void> loadLoja({bool reset = true}) async {
+    if (reset) {
+      _currentPage = 1;
+      _allProdutos = [];
+      emit(LojaHomeLoading());
+    } else {
+      final currentState = state;
+      if (currentState is LojaHomeLoaded) {
+        emit(currentState.copyWith(isLoadingMore: true));
+      } else {
+        emit(LojaHomeLoadingMore());
       }
+    }
+
+    try {
+      final response = await _repository.getLojaDetalhe(
+        id: lojaId,
+        page: _currentPage,
+        perPage: 20,
+        categoriaId: _selectedCategoriaId,
+        search: _searchQuery,
+        orderBy: _orderBy,
+      );
+
+      _totalPages = response.pagination.totalPages;
+      final novosProdutos = response.items;
+      _allProdutos = reset ? novosProdutos : [..._allProdutos, ...novosProdutos];
 
       emit(LojaHomeLoaded(
-        loja: loja,
-        produtos: allProdutos,
-        produtosPorCategoria: porCategoria,
-        selectedCategories: _selectedCategories,
-        activeFilterCount: _selectedCategories.length + (_orderBy != null ? 1 : 0),
-        hasMore: false, // Endpoint /loja-home não tem paginação
-        currentPage: 1,
+        loja: response,
+        produtos: _allProdutos,
+        produtosPorCategoria: _groupByCategoria(_allProdutos),
+        selectedCategories: _selectedCategoriaId != null ? [_selectedCategoriaId!] : [],
+        orderBy: _orderBy,
+        activeFilterCount: (_selectedCategoriaId != null ? 1 : 0) + 
+                          (_orderBy != null ? 1 : 0) +
+                          (_searchQuery != null && _searchQuery!.isNotEmpty ? 1 : 0),
+        hasMore: _currentPage < _totalPages,
+        currentPage: _currentPage,
+        totalPages: _totalPages,
+        searchQuery: _searchQuery,
       ));
     } catch (e) {
       emit(LojaHomeError('Erro ao carregar dados da loja: $e'));
     }
   }
 
-  Future<void> loadMoreProdutos() async {
-    // Sem paginação no endpoint unificado por enquanto
-    return;
-  }
-
-  Future<void> searchQueryChanged(String query) async {
-    _searchQuery = query.trim().isEmpty ? null : query;
-    if (_searchQuery == null) {
-      await fetchLojaDetails();
-      return;
-    }
-
-    emit(LojaHomeLoading());
-    try {
-      final secoes = await _repository.searchProdutos(
-        lojaId,
-        _searchQuery!,
-        orderBy: _orderBy,
-      );
-
-      final currentState = state;
-      if (currentState is LojaHomeLoaded) {
-        final List<Produto> allProdutos = [];
-        final Map<String, List<Produto>> porCategoria = {};
-
-        for (var secao in secoes) {
-          final produtosSecao = secao.produtos.map((p) => Produto(
-            id: p.id,
-            lojaId: lojaId,
-            nome: p.nome,
-            descricao: p.descricao ?? '',
-            preco: p.preco,
-            precoPromocional: p.precoPromocional,
-            categoria: secao.nome,
-            imagem: p.imagem ?? '',
-            ingredientes: const [],
-            disponivel: p.disponivel,
-            destaque: p.destaque,
-            avaliacao: p.notaMedia,
-          )).toList();
-
-          allProdutos.addAll(produtosSecao);
-          porCategoria[secao.nome] = produtosSecao;
-        }
-
-        emit(currentState.copyWith(
-          produtos: allProdutos,
-          produtosPorCategoria: porCategoria,
-        ));
-      }
-    } catch (e) {
-      emit(LojaHomeError('Erro na busca: $e'));
+  void loadMore() {
+    if (state is LojaHomeLoaded && _currentPage < _totalPages && state is! LojaHomeLoadingMore) {
+      _currentPage++;
+      loadLoja(reset: false);
     }
   }
 
-  Future<void> applyFilters(Set<String> categories) async {
-    _selectedCategories = categories.toList();
-    await fetchLojaDetails();
+  Map<int, List<ProdutoModel>> _groupByCategoria(List<ProdutoModel> items) {
+    final Map<int, List<ProdutoModel>> map = {};
+    for (var item in items) {
+      final catId = item.subcategoriaId ?? 0;
+      if (!map.containsKey(catId)) map[catId] = [];
+      map[catId]!.add(item);
+    }
+    return map;
   }
 
-  Future<void> setOrderBy(String? orderBy) async {
+  Future<void> applyFilters({String? search, int? categoriaId, String? orderBy}) async {
+    _searchQuery = search;
+    _selectedCategoriaId = categoriaId;
     _orderBy = orderBy;
-    await fetchLojaDetails();
+    _currentPage = 1;
+    await loadLoja(reset: true);
+  }
+
+  Future<void> clearFilters() async {
+    _searchQuery = null;
+    _selectedCategoriaId = null;
+    _orderBy = null;
+    _currentPage = 1;
+    await loadLoja(reset: true);
   }
 
   Future<void> refresh() async {
-    _searchQuery = null;
-    _selectedCategories = [];
-    _orderBy = null;
-    await fetchLojaDetails();
+    await loadLoja(reset: true);
   }
-
-  void toggleCategoryFilter(String categoria) {}
 }

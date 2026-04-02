@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qui/app/di/dependencies.dart';
-import 'package:qui/app/modules/auth/bloc/auth_cubit.dart';
-import 'package:qui/app/modules/home/bloc/address_cubit.dart';
-import 'package:qui/app/modules/lojas/bloc/lojas_cubit.dart';
-import 'package:qui/app/routes/app_router.dart';
-import 'package:qui/app/routes/app_routes.dart';
-import 'package:qui/app/core/theme/app_theme.dart';
-import 'package:qui/app/theme/theme_cubit.dart';
-import 'package:qui/shared/auth/auth_observer.dart';
+import 'package:quipede/shared/auth/auth_observer.dart';
+
+
+import 'app/core/theme/app_theme.dart';
+import 'app/di/dependencies.dart';
+import 'app/modules/auth/bloc/auth_cubit.dart';
+import 'app/modules/home/bloc/address_cubit.dart';
+import 'app/modules/lojas/bloc/lojas_cubit.dart';
+import 'app/routes/app_router.dart';
+import 'app/routes/app_routes.dart';
+import 'app/theme/theme_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

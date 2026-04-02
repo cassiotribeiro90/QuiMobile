@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qui/app/routes/app_routes.dart';
+import '../../../routes/app_routes.dart';
 import '../../home/bloc/address_cubit.dart';
 import '../../home/bloc/address_state.dart';
 

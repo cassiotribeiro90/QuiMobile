@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qui/app/modules/lojas/bloc/lojas_state.dart';
-import 'package:qui/app/repository/loja_repository.dart';
-import 'package:qui/app/modules/lojas/models/loja.dart';
-import 'package:qui/app/modules/lojas/models/pagination_model.dart';
+import 'lojas_state.dart';
+import '../../../repository/loja_repository.dart';
+import '../models/loja.dart';
+import '../models/pagination_model.dart';
 
 class LojasCubit extends Cubit<LojasState> {
   final LojaRepository _repository;

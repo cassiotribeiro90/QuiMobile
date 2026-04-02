@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qui/app/di/dependencies.dart';
-import 'package:qui/app/modules/auth/bloc/auth_cubit.dart';
-import 'package:qui/app/modules/auth/views/login_screen.dart';
-import 'package:qui/app/modules/home/views/home_screen.dart';
-import 'package:qui/app/modules/lojas/bloc/lojas_cubit.dart';
-import 'package:qui/app/modules/auth/views/splash_screen.dart';
-import 'package:qui/app/modules/perfil/views/perfil_view.dart';
-import 'package:qui/app/modules/perfil/views/enderecos_view.dart';
-import 'package:qui/app/modules/perfil/views/pedidos_view.dart';
-import '../modules/home/bloc/address_cubit.dart';
+import '../di/dependencies.dart';
+import '../modules/auth/bloc/auth_cubit.dart';
+import '../modules/auth/views/login_screen.dart';
+import '../modules/auth/views/splash_screen.dart';
 import '../modules/home/bloc/home_cubit.dart';
+import '../modules/home/views/home_screen.dart';
 import '../modules/loja_home/bloc/loja_home_cubit.dart';
-import '../modules/loja_home/views/loja_home_view.dart';
+import '../modules/loja_home/views/loja_detalhe_page.dart';
+import '../modules/perfil/views/pedidos_view.dart';
+import '../modules/perfil/views/perfil_view.dart';
+import '../modules/perfil/views/enderecos_view.dart';
+import '../modules/lojas/bloc/lojas_cubit.dart';
 import 'app_routes.dart';
 
 class AppRouter {
@@ -39,6 +38,7 @@ class AppRouter {
           builder: (_) => MultiBlocProvider(
             providers: [
               BlocProvider.value(value: getIt<HomeCubit>()),
+              BlocProvider.value(value: getIt<LojasCubit>()),
             ],
             child: const HomeScreen(),
           ),
@@ -47,10 +47,7 @@ class AppRouter {
       case Routes.LOJA_HOME:
         final lojaId = settings.arguments as int;
         return MaterialPageRoute(
-          builder: (_) => BlocProvider<LojaHomeCubit>(
-            create: (context) => getIt<LojaHomeCubit>(param1: lojaId),
-            child: const LojaHomeView(),
-          ),
+          builder: (_) => LojaDetalhePage(lojaId: lojaId),
         );
 
       case Routes.PERFIL:

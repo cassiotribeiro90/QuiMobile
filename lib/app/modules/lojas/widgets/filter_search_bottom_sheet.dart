@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qui/app/core/utils/text_utils.dart';
+import '../../../core/utils/text_utils.dart';
 import '../bloc/lojas_cubit.dart';
 import '../bloc/lojas_state.dart';
 

@@ -1,17 +1,16 @@
 import 'package:get_it/get_it.dart';
-import 'package:qui/app/repository/loja_repository.dart';
-import 'package:qui/app/repository/loja_repository_impl.dart';
-import 'package:qui/app/modules/home/bloc/address_cubit.dart';
-import 'package:qui/app/modules/home/bloc/home_cubit.dart';
-import 'package:qui/app/modules/lojas/bloc/lojas_cubit.dart';
-import 'package:qui/app/modules/auth/bloc/auth_cubit.dart';
-import 'package:qui/app/theme/theme_cubit.dart';
-import 'package:qui/shared/api/api_client.dart';
-import 'package:qui/shared/services/token_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:qui/app/modules/loja_home/repositories/loja_repository.dart';
-import 'package:qui/app/modules/loja_home/bloc/loja_detalhe_cubit.dart';
-import 'package:qui/app/modules/loja_home/bloc/loja_home_cubit.dart';
+import '../repository/loja_repository.dart';
+import '../repository/loja_repository_impl.dart';
+import '../modules/home/bloc/address_cubit.dart';
+import '../modules/home/bloc/home_cubit.dart';
+import '../modules/lojas/bloc/lojas_cubit.dart';
+import '../modules/auth/bloc/auth_cubit.dart';
+import '../theme/theme_cubit.dart';
+import '../../shared/api/api_client.dart';
+import '../../shared/services/token_service.dart';
+import '../modules/loja_home/repositories/loja_repository.dart';
+import '../modules/loja_home/bloc/loja_home_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -35,11 +34,7 @@ Future<void> setupDependencies() async {
   getIt.registerFactory(() => HomeCubit());
   getIt.registerFactory(() => LojasCubit(getIt<LojaRepository>()));
   
-  // Cubits de Loja detalhe registrados para receber o lojaId dinamicamente via parâmetro do GetIt
-  getIt.registerFactoryParam<LojaDetalheCubit, int, void>(
-    (lojaId, _) => LojaDetalheCubit(getIt<LojaHomeRepository>()),
-  );
-
+  // Cubit de Loja Home (Único Cubit do módulo)
   getIt.registerFactoryParam<LojaHomeCubit, int, void>(
     (lojaId, _) => LojaHomeCubit(getIt<LojaHomeRepository>(), lojaId),
   );

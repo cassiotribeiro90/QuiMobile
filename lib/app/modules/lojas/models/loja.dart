@@ -1,3 +1,5 @@
+import '../../loja_home/models/filter_options_model.dart';
+
 class Loja {
   final int id;
   final String nome;
@@ -16,6 +18,7 @@ class Loja {
   final double? distancia;
   final String? distanciaTexto;
   final String? emoji;
+  final LojaFilterOptions? filterOptions;
 
   Loja({
     required this.id,
@@ -35,6 +38,7 @@ class Loja {
     this.distancia,
     this.distanciaTexto,
     this.emoji,
+    this.filterOptions,
   });
 
   bool get isOpenNow => true; 
@@ -60,6 +64,9 @@ class Loja {
       distancia: json['distancia']?.toDouble(),
       distanciaTexto: json['distancia_texto'],
       emoji: json['emoji'] as String?,
+      filterOptions: json['filter_options'] != null 
+          ? LojaFilterOptions.fromJson(json['filter_options']) 
+          : null,
     );
   }
 
