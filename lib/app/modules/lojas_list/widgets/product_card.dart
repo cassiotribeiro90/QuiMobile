@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../models/produto_model.dart';
+import 'package:quipede/app/modules/loja_home/models/produto_model.dart';
 import '../../../theme/app_theme.dart';
 
 class ProductCard extends StatelessWidget {
-  final Produto produto;
+  final ProdutoModel produto;
 
   const ProductCard({super.key, required this.produto});
 
@@ -22,9 +22,9 @@ class ProductCard extends StatelessWidget {
                 children: [
                   Text(produto.nome, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 4),
-                  if (produto.descricao.isNotEmpty)
+                  if (produto.descricao!.isNotEmpty)
                     Text(
-                      produto.descricao,
+                      produto.descricao ?? "",
                       style: Theme.of(context).textTheme.bodyMedium,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -41,11 +41,11 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            if (produto.imagem.isNotEmpty)
+            if (produto.imagem!.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: CachedNetworkImage(
-                  imageUrl: produto.imagem,
+                  imageUrl: produto.imagem ?? "",
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,

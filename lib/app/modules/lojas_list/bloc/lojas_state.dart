@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../models/loja.dart';
 import '../models/filter_option_model.dart';
-import '../models/pagination_model.dart';
+import '../../loja_home/models/pagination_model.dart';
 
 abstract class LojasState extends Equatable {
   const LojasState();

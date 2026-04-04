@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_theme_extension.dart';
-import '../../../widgets/app_drawer.dart';
-import '../../../widgets/home_app_bar.dart';
+import '../../apparte/widgets/app_drawer.dart';
+import '../../apparte/widgets/home_app_bar.dart';
 import '../../auth/bloc/auth_cubit.dart';
 import '../../auth/bloc/auth_state.dart';
-import '../../lojas/bloc/lojas_cubit.dart';
-import '../../lojas/views/lojas_view.dart';
-import '../../lojas/widgets/filter_search_bottom_sheet.dart';
+import '../../lojas_list/bloc/lojas_cubit.dart';
+import '../../lojas_list/views/lojas_view.dart';
+import '../../lojas_list/widgets/filter_search_bottom_sheet.dart';
 import '../../perfil/views/pedidos_view.dart';
 import '../../perfil/views/perfil_view.dart';
 import '../bloc/home_cubit.dart';

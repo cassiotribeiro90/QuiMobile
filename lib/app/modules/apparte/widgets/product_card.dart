@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../models/produto_model.dart';
+import 'package:quipede/app/modules/loja_home/models/produto_model.dart';
 import '../../../theme/app_theme.dart';
 
 class ProductCard extends StatelessWidget {
-  final Produto produto;
+  final ProdutoModel produto;
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
   final bool showImage;
@@ -43,9 +43,9 @@ class ProductCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(produto.nome, style: Theme.of(context).textTheme.titleMedium),
-        if (produto.descricao.isNotEmpty) ...[
+        if (produto.descricao!.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Text(produto.descricao,
+          Text(produto.descricao ?? "",
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Colors.grey[600], fontSize: 13,
             ), maxLines: 2, overflow: TextOverflow.ellipsis,
@@ -58,25 +58,6 @@ class ProductCard extends StatelessWidget {
   }
 
   List<Widget> _buildPrice() {
-    if (produto.emPromocao) {
-      return [
-        Text(produto.precoFormatado,
-          style: const TextStyle(decoration: TextDecoration.lineThrough,
-            color: Colors.grey, fontSize: 12,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(produto.precoPromocionalFormatado,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16,
-            color: AppTheme.primaryColor,
-          ),
-        ),
-        if (onAddToCart != null) ...[
-          const Spacer(),
-          IconButton(icon: const Icon(Icons.add), onPressed: onAddToCart),
-        ]
-      ];
-    }
     return [
       Text(produto.precoFormatado,
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16,
@@ -95,7 +76,7 @@ class ProductCard extends StatelessWidget {
       padding: const EdgeInsets.only(left: 12),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.network(produto.imagem,
+        child: Image.network(produto.imagem ?? "",
           width: imageSize, height: imageSize, fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Container(
             width: imageSize, height: imageSize, color: Colors.grey[200],

@@ -7,7 +7,7 @@ import 'app/core/theme/app_theme.dart';
 import 'app/di/dependencies.dart';
 import 'app/modules/auth/bloc/auth_cubit.dart';
 import 'app/modules/home/bloc/address_cubit.dart';
-import 'app/modules/lojas/bloc/lojas_cubit.dart';
+import 'app/modules/lojas_list/bloc/lojas_cubit.dart';
 import 'app/routes/app_router.dart';
 import 'app/routes/app_routes.dart';
 import 'app/theme/theme_cubit.dart';

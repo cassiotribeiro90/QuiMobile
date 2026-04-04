@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../repositories/loja_repository.dart';
+import '../repository/loja_repository.dart';
 import 'loja_detalhe_state.dart';
 
 class LojaDetalheCubit extends Cubit<LojaDetalheState> {

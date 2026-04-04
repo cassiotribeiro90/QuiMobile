@@ -6,12 +6,11 @@ import '../modules/auth/views/login_screen.dart';
 import '../modules/auth/views/splash_screen.dart';
 import '../modules/home/bloc/home_cubit.dart';
 import '../modules/home/views/home_screen.dart';
-import '../modules/loja_home/bloc/loja_home_cubit.dart';
 import '../modules/loja_home/views/loja_detalhe_page.dart';
+import '../modules/lojas_list/bloc/lojas_cubit.dart';
 import '../modules/perfil/views/pedidos_view.dart';
 import '../modules/perfil/views/perfil_view.dart';
 import '../modules/perfil/views/enderecos_view.dart';
-import '../modules/lojas/bloc/lojas_cubit.dart';
 import 'app_routes.dart';
 
 class AppRouter {

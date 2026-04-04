@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../repository/loja_repository.dart';
 import 'loja_home_state.dart';
-import '../repositories/loja_repository.dart';
 import '../models/produto_model.dart'; 
 import '../models/loja_detalhe_model.dart';
 

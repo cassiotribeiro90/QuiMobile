@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:quipede/app/modules/lojas/bloc/lojas_cubit.dart';
-import 'package:quipede/app/modules/lojas/bloc/lojas_state.dart';
-import 'package:quipede/app/modules/lojas/widgets/filter_search_bottom_sheet.dart';
-import 'package:quipede/app/modules/lojas/views/loja_item_widget.dart';
+import 'package:quipede/app/modules/lojas_list/bloc/lojas_state.dart';
+import 'package:quipede/app/modules/lojas_list/widgets/filter_search_bottom_sheet.dart';
+import 'package:quipede/app/modules/lojas_list/views/loja_item_widget.dart';
 import 'package:quipede/app/core/utils/text_utils.dart';
+
+import '../bloc/lojas_cubit.dart';
 
 class LojasView extends StatefulWidget {
   const LojasView({super.key});

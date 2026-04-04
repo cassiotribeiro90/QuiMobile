@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../core/theme/app_theme_extension.dart';
-import '../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extension.dart';
+import '../../../core/theme/app_colors.dart';
 
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;

@@ -1,6 +1,6 @@
-import '../../shared/api/api_client.dart';
-import '../modules/lojas/models/loja.dart';
-import '../modules/lojas/models/loja_response_model.dart';
+import '../../../../shared/api/api_client.dart';
+import '../models/loja.dart';
+import '../models/loja_response_model.dart';
 import '../models/enums.dart';
 import 'loja_repository.dart';
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../di/dependencies.dart';
-import '../../../widgets/common/app_text.dart';
-import '../../lojas/bloc/lojas_cubit.dart';
-import '../../lojas/views/loja_view.dart';
+import '../../apparte/widgets/app_text.dart';
+import '../../lojas_list/bloc/lojas_cubit.dart';
+import '../../lojas_list/views/loja_view.dart';
 import '../bloc/home_cubit.dart';
 
 class HomeView extends StatelessWidget {

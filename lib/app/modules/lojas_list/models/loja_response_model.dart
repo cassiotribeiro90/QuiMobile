@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'loja.dart';
-import 'pagination_model.dart';
+import '../../loja_home/models/pagination_model.dart';
 import 'filter_option_model.dart';
+import 'loja.dart';
 
 class LojaResponseModel extends Equatable {
   final List<Loja> items;
