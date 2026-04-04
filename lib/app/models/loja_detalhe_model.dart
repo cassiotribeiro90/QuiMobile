@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:quipede/app/models/produto_model.dart';
+import 'secao_model.dart';
 import 'pagination_model.dart';
 import 'filter_options_model.dart';
 
@@ -24,7 +24,7 @@ class LojaDetalheModel extends Equatable {
   final String status;
   final String fluxoStatus;
   final String corTema;
-  final List<ProdutoModel> items;
+  final List<SecaoModel> secoes;
   final PaginationModel pagination;
   final LojaFilterOptions filterOptions;
 
@@ -49,7 +49,7 @@ class LojaDetalheModel extends Equatable {
     required this.status,
     required this.fluxoStatus,
     required this.corTema,
-    required this.items,
+    required this.secoes,
     required this.pagination,
     required this.filterOptions,
   });
@@ -76,8 +76,8 @@ class LojaDetalheModel extends Equatable {
       status: json['status'] as String,
       fluxoStatus: (json['fluxo_status'] ?? json['fluxoStatus']) as String,
       corTema: (json['cor_tema'] ?? json['corTema']) as String,
-      items: (json['items'] as List? ?? [])
-          .map((e) => ProdutoModel.fromJson(e as Map<String, dynamic>))
+      secoes: (json['secoes'] as List? ?? [])
+          .map((e) => SecaoModel.fromJson(e as Map<String, dynamic>))
           .toList(),
       pagination: PaginationModel.fromJson(json['pagination'] as Map<String, dynamic>),
       filterOptions: LojaFilterOptions.fromJson(json['filter_options'] as Map<String, dynamic>),
@@ -89,7 +89,7 @@ class LojaDetalheModel extends Equatable {
         id, nome, descricao, slug, categoria, logo, capa,
         enderecoCompleto, enderecoResumido, notaMedia, totalAvaliacoes,
         tempoEntregaMin, tempoEntregaMax, taxaEntrega, pedidoMinimo,
-        destaque, verificado, status, fluxoStatus, corTema, items,
+        destaque, verificado, status, fluxoStatus, corTema, secoes,
         pagination, filterOptions
       ];
 }

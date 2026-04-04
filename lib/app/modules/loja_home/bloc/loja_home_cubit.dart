@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../models/produto_model.dart';
 import '../repository/loja_repository.dart';
 import 'loja_home_state.dart';
+import '../../../models/secao_model.dart';
 
 class LojaHomeCubit extends Cubit<LojaHomeState> {
   final LojaHomeRepository _repository;
@@ -13,21 +13,25 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
   String? _searchQuery;
   int? _selectedCategoriaId;
   String? _orderBy;
-  List<ProdutoModel> _allProdutos = [];
 
   LojaHomeCubit(this._repository, this.lojaId) : super(LojaHomeInitial());
 
   Future<void> loadLoja({bool reset = true}) async {
+    final currentState = state;
+    
     if (reset) {
       _currentPage = 1;
-      _allProdutos = [];
-      emit(LojaHomeLoading());
-    } else {
-      final currentState = state;
       if (currentState is LojaHomeLoaded) {
-        emit(currentState.copyWith(isLoadingMore: true));
+        // ✅ Mantém as seções antigas e ativa isFiltering para mostrar o overlay semi-transparente
+        emit(currentState.copyWith(isFiltering: true, isLoadingMore: false));
       } else {
-        emit(LojaHomeLoadingMore());
+        emit(LojaHomeLoading());
+      }
+    } else {
+      if (currentState is LojaHomeLoaded) {
+        emit(currentState.copyWith(isLoadingMore: true, isFiltering: false));
+      } else {
+        emit(LojaHomeLoadingMore(secoes: currentState.secoes, loja: currentState.loja));
       }
     }
 
@@ -42,13 +46,13 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
       );
 
       _totalPages = response.pagination.totalPages;
-      final novosProdutos = response.items;
-      _allProdutos = reset ? novosProdutos : [..._allProdutos, ...novosProdutos];
+      
+      final List<SecaoModel> currentSecoes = reset ? [] : state.secoes;
+      final mergedSecoes = reset ? response.secoes : _mergeSecoes(currentSecoes, response.secoes);
 
       emit(LojaHomeLoaded(
         loja: response,
-        produtos: _allProdutos,
-        produtosPorCategoria: _groupByCategoria(_allProdutos),
+        secoes: mergedSecoes,
         selectedCategories: _selectedCategoriaId != null ? [_selectedCategoriaId!] : [],
         orderBy: _orderBy,
         activeFilterCount: (_selectedCategoriaId != null ? 1 : 0) + 
@@ -58,31 +62,47 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
         currentPage: _currentPage,
         totalPages: _totalPages,
         searchQuery: _searchQuery,
+        pagination: response.pagination,
+        filterOptions: response.filterOptions,
+        isLoadingMore: false,
+        isFiltering: false,
       ));
     } catch (e) {
-      emit(LojaHomeError('Erro ao carregar dados da loja: $e'));
+      emit(LojaHomeError('Erro ao carregar dados da loja: $e', secoes: state.secoes, loja: state.loja));
     }
   }
 
   void loadMore() {
-    if (state is LojaHomeLoaded && _currentPage < _totalPages && state is! LojaHomeLoadingMore) {
+    if (state is LojaHomeLoaded && _currentPage < _totalPages && !(state as LojaHomeLoaded).isLoadingMore && !(state as LojaHomeLoaded).isFiltering) {
       _currentPage++;
       loadLoja(reset: false);
     }
   }
 
-  Map<int, List<ProdutoModel>> _groupByCategoria(List<ProdutoModel> items) {
-    final Map<int, List<ProdutoModel>> map = {};
-    for (var item in items) {
-      final catId = item.subcategoriaId ?? 0;
-      if (!map.containsKey(catId)) map[catId] = [];
-      map[catId]!.add(item);
+  List<SecaoModel> _mergeSecoes(List<SecaoModel> current, List<SecaoModel> next) {
+    final Map<int, SecaoModel> map = {for (var s in current) s.id: s};
+    for (var n in next) {
+      if (map.containsKey(n.id)) {
+        final existing = map[n.id]!;
+        map[n.id] = SecaoModel(
+          id: existing.id,
+          nome: existing.nome,
+          icone: existing.icone,
+          ordem: existing.ordem,
+          totalProdutos: n.totalProdutos,
+          produtos: [...existing.produtos, ...n.produtos],
+        );
+      } else {
+        map[n.id] = n;
+      }
     }
-    return map;
+    final merged = map.values.toList();
+    merged.sort((a, b) => a.ordem.compareTo(b.ordem));
+    return merged;
   }
 
   Future<void> applyFilters({String? search, int? categoriaId, String? orderBy}) async {
-    _searchQuery = search;
+    _searchQuery = (search != null && search.trim().isNotEmpty) ? search.trim() : null;
     _selectedCategoriaId = categoriaId;
     _orderBy = orderBy;
     _currentPage = 1;

@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../repository/loja_repository.dart';
 import 'loja_detalhe_state.dart';
+import '../../../models/secao_model.dart';
 
 class LojaDetalheCubit extends Cubit<LojaDetalheState> {
   final LojaHomeRepository _repository;
@@ -14,7 +15,7 @@ class LojaDetalheCubit extends Cubit<LojaDetalheState> {
       final loja = await _repository.getLojaDetalhe(id: lojaId);
       emit(LojaDetalheLoaded(
         loja: loja,
-        items: loja.items,
+        secoes: loja.secoes,
         hasMore: loja.pagination.page < loja.pagination.totalPages,
       ));
     } catch (e) {
@@ -36,9 +37,11 @@ class LojaDetalheCubit extends Cubit<LojaDetalheState> {
           orderBy: currentState.orderBy,
         );
 
+        final mergedSecoes = _mergeSecoes(currentState.secoes, response.secoes);
+
         emit(currentState.copyWith(
           loja: response,
-          items: [...currentState.items, ...response.items],
+          secoes: mergedSecoes,
           hasMore: response.pagination.page < response.pagination.totalPages,
           isLoadingMore: false,
         ));
@@ -46,6 +49,28 @@ class LojaDetalheCubit extends Cubit<LojaDetalheState> {
         emit(currentState.copyWith(isLoadingMore: false));
       }
     }
+  }
+
+  List<SecaoModel> _mergeSecoes(List<SecaoModel> current, List<SecaoModel> next) {
+    final Map<int, SecaoModel> map = {for (var s in current) s.id: s};
+    for (var n in next) {
+      if (map.containsKey(n.id)) {
+        final existing = map[n.id]!;
+        map[n.id] = SecaoModel(
+          id: existing.id,
+          nome: existing.nome,
+          icone: existing.icone,
+          ordem: existing.ordem,
+          totalProdutos: n.totalProdutos,
+          produtos: [...existing.produtos, ...n.produtos],
+        );
+      } else {
+        map[n.id] = n;
+      }
+    }
+    final merged = map.values.toList();
+    merged.sort((a, b) => a.ordem.compareTo(b.ordem));
+    return merged;
   }
 
   Future<void> filterByCategoria(int? categoriaId) async {
@@ -61,7 +86,7 @@ class LojaDetalheCubit extends Cubit<LojaDetalheState> {
         );
         emit(LojaDetalheLoaded(
           loja: loja,
-          items: loja.items,
+          secoes: loja.secoes,
           hasMore: loja.pagination.page < loja.pagination.totalPages,
           categoriaId: categoriaId,
           search: currentState.search,
@@ -86,7 +111,7 @@ class LojaDetalheCubit extends Cubit<LojaDetalheState> {
         );
         emit(LojaDetalheLoaded(
           loja: loja,
-          items: loja.items,
+          secoes: loja.secoes,
           hasMore: loja.pagination.page < loja.pagination.totalPages,
           search: query,
           categoriaId: currentState.categoriaId,
@@ -111,7 +136,7 @@ class LojaDetalheCubit extends Cubit<LojaDetalheState> {
         );
         emit(LojaDetalheLoaded(
           loja: loja,
-          items: loja.items,
+          secoes: loja.secoes,
           hasMore: loja.pagination.page < loja.pagination.totalPages,
           orderBy: orderBy,
           categoriaId: currentState.categoriaId,
@@ -124,6 +149,6 @@ class LojaDetalheCubit extends Cubit<LojaDetalheState> {
   }
 
   Future<void> refresh() async {
-     loadLoja();
+    await loadLoja();
   }
 }

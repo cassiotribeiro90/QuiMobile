@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../models/loja_detalhe_model.dart';
-import '../../../models/produto_model.dart';
+import '../../../models/secao_model.dart';
 
 abstract class LojaDetalheState extends Equatable {
   const LojaDetalheState();
@@ -15,7 +15,7 @@ class LojaDetalheLoading extends LojaDetalheState {}
 
 class LojaDetalheLoaded extends LojaDetalheState {
   final LojaDetalheModel loja;
-  final List<ProdutoModel> items;
+  final List<SecaoModel> secoes;
   final bool hasMore;
   final bool isLoadingMore;
   final int? categoriaId;
@@ -24,7 +24,7 @@ class LojaDetalheLoaded extends LojaDetalheState {
 
   const LojaDetalheLoaded({
     required this.loja,
-    required this.items,
+    required this.secoes,
     this.hasMore = false,
     this.isLoadingMore = false,
     this.categoriaId,
@@ -34,7 +34,7 @@ class LojaDetalheLoaded extends LojaDetalheState {
 
   LojaDetalheLoaded copyWith({
     LojaDetalheModel? loja,
-    List<ProdutoModel>? items,
+    List<SecaoModel>? secoes,
     bool? hasMore,
     bool? isLoadingMore,
     int? categoriaId,
@@ -43,7 +43,7 @@ class LojaDetalheLoaded extends LojaDetalheState {
   }) {
     return LojaDetalheLoaded(
       loja: loja ?? this.loja,
-      items: items ?? this.items,
+      secoes: secoes ?? this.secoes,
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       categoriaId: categoriaId ?? this.categoriaId,
@@ -53,7 +53,7 @@ class LojaDetalheLoaded extends LojaDetalheState {
   }
 
   @override
-  List<Object?> get props => [loja, items, hasMore, isLoadingMore, categoriaId, search, orderBy];
+  List<Object?> get props => [loja, secoes, hasMore, isLoadingMore, categoriaId, search, orderBy];
 }
 
 class LojaDetalheError extends LojaDetalheState {
