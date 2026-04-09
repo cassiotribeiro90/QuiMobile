@@ -8,4 +8,5 @@ abstract class Routes {
   static const PERFIL = '/perfil';
   static const ENDERECOS = '/enderecos';
   static const PEDIDOS = '/pedidos';
+  static const CARRINHO = '/carrinho';
 }

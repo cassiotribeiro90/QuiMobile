@@ -15,14 +15,18 @@ class LojaHomeRepository {
     String? orderBy,
   }) async {
     try {
-      final response = await _apiClient.get('/app/loja-home', queryParameters: {
-        'id': id,
-        'page': page,
-        'per_page': perPage,
-        if (categoriaId != null) 'categoria_id': categoriaId,
-        if (search != null && search.isNotEmpty) 'search': search,
-        if (orderBy != null) 'order_by': orderBy,
-      });
+      final response = await _apiClient.get(
+        '/app/loja-home', 
+        queryParameters: {
+          'id': id,
+          'page': page,
+          'per_page': perPage,
+          if (categoriaId != null) 'categoria_id': categoriaId,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (orderBy != null) 'order_by': orderBy,
+        },
+        requiresAuth: false, // ✅ Público
+      );
       return LojaDetalheModel.fromJson(response.data['data']);
     } catch (e) {
       rethrow;

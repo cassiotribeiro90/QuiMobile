@@ -4,6 +4,7 @@ import '../di/dependencies.dart';
 import '../modules/auth/bloc/auth_cubit.dart';
 import '../modules/auth/views/login_screen.dart';
 import '../modules/auth/views/splash_screen.dart';
+import '../modules/carrinho/views/carrinho_page.dart';
 import '../modules/home/bloc/home_cubit.dart';
 import '../modules/home/views/home_screen.dart';
 import '../modules/loja_home/views/loja_detalhe_page.dart';
@@ -57,6 +58,9 @@ class AppRouter {
 
       case Routes.PEDIDOS:
         return MaterialPageRoute(builder: (_) => const PedidosView());
+
+      case Routes.CARRINHO:
+        return MaterialPageRoute(builder: (_) => const CarrinhoPage());
 
       default:
         return _errorRoute();

@@ -1,3 +1,6 @@
+// lib/app/di/dependencies.dart
+
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../modules/loja_home/repository/loja_repository.dart';
@@ -11,31 +14,54 @@ import '../theme/theme_cubit.dart';
 import '../../shared/api/api_client.dart';
 import '../../shared/services/token_service.dart';
 import '../modules/loja_home/bloc/loja_home_cubit.dart';
+import '../modules/carrinho/bloc/carrinho_cubit.dart';
+import '../modules/carrinho/services/carrinho_service.dart';
 
 final getIt = GetIt.instance;
 
 Future<void> setupDependencies() async {
   final prefs = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(prefs);
-  
-  // Services
-  getIt.registerLazySingleton<TokenService>(() => TokenService(getIt<SharedPreferences>()));
-  getIt.registerLazySingleton<ApiClient>(() => ApiClient(tokenService: getIt<TokenService>()));
 
-  // Repositories
+  // ✅ 1. Inicializar TokenService
+  await TokenService.initialize();
+  getIt.registerSingleton<TokenService>(TokenService());
+
+  // ✅ 2. Navigator Key
+  getIt.registerSingleton<GlobalKey<NavigatorState>>(ApiClient.navigatorKey);
+
+  // ✅ 3. ApiClient (baixo nível)
+  getIt.registerLazySingleton<ApiClient>(() => ApiClient());
+
+  // ✅ 4. Services
+  getIt.registerLazySingleton<CarrinhoService>(() => CarrinhoService(getIt<ApiClient>()));
+
+  // ✅ 5. Repositories
   getIt.registerLazySingleton<LojaRepository>(() => LojaRepositoryImpl(getIt<ApiClient>()));
   getIt.registerLazySingleton<LojaHomeRepository>(() => LojaHomeRepository(getIt<ApiClient>()));
 
-  // Cubits
+  // ✅ 6. ThemeCubit (independente)
   getIt.registerSingleton<ThemeCubit>(ThemeCubit(getIt<SharedPreferences>()));
-  getIt.registerSingleton<AuthCubit>(AuthCubit(getIt<ApiClient>(), getIt<TokenService>()));
 
+  // ✅ 7. AuthCubit (criar primeiro, sem dependência do Carrinho)
+  getIt.registerSingleton<AuthCubit>(AuthCubit(getIt<ApiClient>()));
+
+  // ✅ 8. CarrinhoCubit (depende do AuthCubit, NÃO carregar imediatamente)
+  getIt.registerSingleton<CarrinhoCubit>(
+    CarrinhoCubit(
+      getIt<CarrinhoService>(),
+      getIt<AuthCubit>(),  // ← Passar AuthCubit
+    ),
+  );
+
+  // ✅ 9. Cubits que dependem do AuthCubit (mas não carregam imediatamente)
   getIt.registerFactory(() => AddressCubit());
   getIt.registerFactory(() => HomeCubit());
   getIt.registerFactory(() => LojasCubit(getIt<LojaRepository>()));
-  
-  // Cubit de Loja Home (Único Cubit do módulo)
+
   getIt.registerFactoryParam<LojaHomeCubit, int, void>(
-    (lojaId, _) => LojaHomeCubit(getIt<LojaHomeRepository>(), lojaId),
+        (lojaId, _) => LojaHomeCubit(getIt<LojaHomeRepository>(), lojaId),
   );
+
+  print('✅ [DI] setupDependencies concluído');
 }

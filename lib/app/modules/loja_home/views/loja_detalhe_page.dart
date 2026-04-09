@@ -1,3 +1,5 @@
+// lib/modules/loja_home/views/loja_detalhe_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../di/dependencies.dart';
@@ -7,6 +9,12 @@ import '../widgets/loja_header_widget.dart';
 import '../widgets/search_with_filters.dart';
 import '../widgets/secoes_list_widget.dart';
 import '../../../core/theme/app_theme_extension.dart';
+import '../../carrinho/bloc/carrinho_cubit.dart';
+import '../../carrinho/widgets/carrinho_bottom_bar.dart';
+import '../../produtos/widgets/produto_simples_bottom_sheet.dart';
+import '../../auth/bloc/auth_cubit.dart';
+import '../../auth/bloc/auth_state.dart';
+import '../../auth/views/login_screen.dart';
 
 class LojaDetalhePage extends StatefulWidget {
   final int lojaId;
@@ -21,10 +29,21 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
   late final LojaHomeCubit _cubit;
   final ScrollController _scrollController = ScrollController();
 
+  dynamic _produtoPendente;
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
-    _cubit = getIt<LojaHomeCubit>(param1: widget.lojaId)..loadLoja();
+    _cubit = getIt<LojaHomeCubit>(param1: widget.lojaId);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _cubit.loadLoja();
+        getIt<CarrinhoCubit>().carregarCarrinho();
+      }
+    });
+
     _scrollController.addListener(_onScroll);
   }
 
@@ -36,161 +55,255 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      _cubit.loadMore();
+    if (_isLoadingMore) return;
+
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final state = _cubit.state;
+      if (state is LojaHomeLoaded && state.hasMore && !state.isLoadingMore) {
+        _isLoadingMore = true;
+        _cubit.loadMore();
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _isLoadingMore = false;
+        });
+      }
     }
+  }
+
+  void _abrirProduto(BuildContext context, dynamic produto) {
+    final authCubit = getIt<AuthCubit>();
+    final authState = authCubit.state;
+
+    if (authState is! AuthAuthenticated) {
+      _produtoPendente = produto;
+      _mostrarSnackBarERedirecionar();
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BlocProvider.value(
+        value: getIt<CarrinhoCubit>(),
+        child: ProdutoSimplesBottomSheet(
+          produto: produto,
+          lojaId: widget.lojaId,
+        ),
+      ),
+    );
+  }
+
+  void _mostrarSnackBarERedirecionar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Faça login para ver os detalhes do produto'),
+        backgroundColor: Colors.orange.shade700,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        ).then((_) {
+          final authCubit = getIt<AuthCubit>();
+          if (authCubit.state is AuthAuthenticated && _produtoPendente != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => BlocProvider.value(
+                    value: getIt<CarrinhoCubit>(),
+                    child: ProdutoSimplesBottomSheet(
+                      produto: _produtoPendente!,
+                      lojaId: widget.lojaId,
+                    ),
+                  ),
+                );
+                _produtoPendente = null;
+              }
+            });
+          }
+        });
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _cubit,
-      child: Scaffold(
-        backgroundColor: context.backgroundColor,
-        body: BlocConsumer<LojaHomeCubit, LojaHomeState>(
-          listener: (context, state) {
-            if (state is LojaHomeError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message)),
-              );
-            }
-          },
-          builder: (context, state) {
-            // ===== PRIMEIRO CARREGAMENTO (tela inteira) =====
-            if (state is LojaHomeLoading && state.secoes.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            // ===== ERRO (sem dados) =====
-            if (state is LojaHomeError && state.secoes.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(state.message, style: context.bodyMedium),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => _cubit.loadLoja(),
-                      child: const Text('Tentar novamente'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            // ===== ESTADO CARREGADO (ou com dados parciais) =====
-            if (state is LojaHomeLoaded || state.loja != null) {
-              final loadedState = state is LojaHomeLoaded ? state : null;
-              final loja = state.loja;
-              
-              // Verifica se estamos filtrando (reset de lista com dados prévios)
-              final isFiltering = loadedState?.isFiltering ?? false;
-              // Verifica se estamos paginando (scroll infinito)
-              final isLoadingMore = loadedState?.isLoadingMore ?? (state is LojaHomeLoadingMore);
-              
-              final hasData = state.secoes.isNotEmpty;
-
-              return Stack(
-                children: [
-                  RefreshIndicator(
-                    onRefresh: () => _cubit.refresh(),
-                    child: CustomScrollView(
-                      controller: _scrollController,
-                      slivers: [
-                        // AppBar
-                        SliverAppBar(
-                          pinned: true,
-                          backgroundColor: context.surfaceColor,
-                          elevation: 0,
-                          leading: BackButton(color: context.textPrimary),
-                          title: Text(
-                            loja?.nome ?? 'Carregando...',
-                            style: context.titleMedium.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          actions: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: const Icon(Icons.shopping_cart_outlined),
-                              color: context.textPrimary,
-                            ),
-                          ],
-                        ),
-                        
-                        // Header da loja (sempre visível)
-                        if (loja != null) LojaHeaderWidget(loja: loja),
-                        
-                        // Barra de pesquisa e filtros
-                        if (loja != null)
-                          SliverToBoxAdapter(
-                            child: SearchWithFilters(
-                              categorias: loja.filterOptions.categorias,
-                              selectedCategoriaId: loadedState?.selectedCategories.isNotEmpty == true 
-                                  ? loadedState!.selectedCategories.first 
-                                  : null,
-                              selectedOrderBy: loadedState?.orderBy,
-                              searchQuery: loadedState?.searchQuery,
-                              onApply: (search, catId, orderBy) => _cubit.applyFilters(
-                                search: search,
-                                categoriaId: catId,
-                                orderBy: orderBy,
-                              ),
-                              onClearFilters: () => _cubit.clearFilters(),
-                            ),
-                          ),
-                        
-                        // Indicador sutil para paginação
-                        if (isLoadingMore && hasData)
-                          const SliverToBoxAdapter(
-                            child: LinearProgressIndicator(minHeight: 2),
-                          ),
-
-                        // ===== LISTA DE PRODUTOS =====
-                        SecoesListWidget(
-                          secoes: state.secoes,
-                          onProdutoTap: (produto) {
-                            Navigator.pushNamed(
-                              context,
-                              '/produto/detalhe',
-                              arguments: {
-                                'id': produto.id,
-                                'produto': produto,
-                              },
-                            );
-                          },
-                        ),
-                        
-                        // Mensagem de fim de lista
-                        if (loadedState != null && !loadedState.hasMore && state.secoes.isNotEmpty && !isFiltering)
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 32),
-                              child: Center(
-                                child: Text(
-                                  'Isso é tudo por enquanto! 🍕',
-                                  style: context.bodySmall.copyWith(color: context.textHint),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _cubit),
+        BlocProvider.value(value: getIt<CarrinhoCubit>()),
+      ],
+      child: BlocConsumer<LojaHomeCubit, LojaHomeState>(
+        listener: (context, state) {
+          if (state is LojaHomeError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          return Scaffold(
+            backgroundColor: context.backgroundColor,
+            appBar: AppBar(
+              leading: BackButton(color: context.textPrimary),
+              title: Text(
+                state.loja?.nome ?? 'Carregando...',
+                style: context.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: context.surfaceColor,
+              elevation: 0,
+            ),
+            bottomNavigationBar: _buildBottomBar(state),
+            body: Stack(
+              children: [
+                _buildBody(context, state),
+                if (state is LojaHomeLoaded && state.isFiltering)
+                  Container(
+                    color: Colors.white.withOpacity(0.7),
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
-                  
-                  // ✅ OVERLAY SEMI-TRANSPARENTE DURANTE FILTROS (Alpha aumentado para ficar mais visível)
-                  if (isFiltering)
-                    Container(
-                      color: Colors.white.withOpacity(0.7),
-                      child: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
-                ],
-              );
-            }
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-            return const SizedBox.shrink();
-          },
+  Widget? _buildBottomBar(LojaHomeState state) {
+    final loja = state.loja;
+    if (loja == null) return null;
+
+    return BlocBuilder<CarrinhoCubit, CarrinhoState>(
+      buildWhen: (prev, curr) {
+        if (prev is CarrinhoLoaded && curr is CarrinhoLoaded) {
+          return prev.totalItens != curr.totalItens;
+        }
+        return true;
+      },
+      builder: (context, carrinhoState) {
+        if (carrinhoState is CarrinhoLoaded && carrinhoState.totalItens > 0) {
+          return CarrinhoBottomBar(
+            lojaNome: loja.nome,
+            onTap: () => Navigator.pushNamed(context, '/carrinho'),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, LojaHomeState state) {
+    if (state is LojaHomeLoading && state.secoes.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state is LojaHomeError && state.secoes.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(state.message),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _cubit.loadLoja(),
+              child: const Text('Tentar novamente'),
+            ),
+          ],
         ),
+      );
+    }
+
+    final loja = state.loja;
+    final isLoadingMore = state is LojaHomeLoaded && state.isLoadingMore;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        _isLoadingMore = false;
+        await Future.wait([
+          _cubit.refresh(),
+          getIt<CarrinhoCubit>().carregarCarrinho(),
+        ]);
+      },
+      child: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          if (loja != null) LojaHeaderWidget(loja: loja),
+
+          if (loja != null)
+            SliverToBoxAdapter(
+              child: SearchWithFilters(
+                categorias: loja.filterOptions.categorias,
+                selectedCategoriaId: state is LojaHomeLoaded && state.selectedCategories.isNotEmpty
+                    ? state.selectedCategories.first
+                    : null,
+                selectedOrderBy: state is LojaHomeLoaded ? state.orderBy : null,
+                searchQuery: state is LojaHomeLoaded ? state.searchQuery : null,
+                onApply: (search, catId, orderBy) => _cubit.applyFilters(
+                  search: search,
+                  categoriaId: catId,
+                  orderBy: orderBy,
+                ),
+                onClearFilters: () => _cubit.clearFilters(),
+              ),
+            ),
+
+          // ✅ BlocSelector para extrair apenas o que SecoesListWidget precisa do carrinho
+          BlocSelector<CarrinhoCubit, CarrinhoState, Map<String, Map<int, int>>>(
+            selector: (carrinhoState) {
+              final quantidades = <int, int>{};
+              final itemIds = <int, int>{};
+              if (carrinhoState is CarrinhoLoaded) {
+                for (var item in carrinhoState.itens) {
+                  quantidades[item.produtoId] = item.quantidade;
+                  itemIds[item.produtoId] = item.produtoId;
+                }
+              }
+              return {
+                'quantidades': quantidades,
+                'itemIds': itemIds,
+              };
+            },
+            builder: (context, dados) {
+              return SecoesListWidget(
+                secoes: state.secoes,
+                lojaId: widget.lojaId,
+                onProdutoTap: (produto) => _abrirProduto(context, produto),
+                quantidadesPorProduto: dados['quantidades']!,
+                itemIdsPorProduto: dados['itemIds']!,
+              );
+            },
+          ),
+
+          if (isLoadingMore)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+
+          if (state is LojaHomeLoaded && !state.hasMore && state.secoes.isNotEmpty)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(
+                  child: Text(
+                    'Isso é tudo por enquanto! 🍕',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

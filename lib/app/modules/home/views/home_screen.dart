@@ -11,24 +11,72 @@ import '../../lojas_list/views/lojas_view.dart';
 import '../../lojas_list/widgets/filter_search_bottom_sheet.dart';
 import '../../perfil/views/pedidos_view.dart';
 import '../../perfil/views/perfil_view.dart';
+import '../../carrinho/bloc/carrinho_cubit.dart';
+import '../../carrinho/widgets/carrinho_bottom_bar.dart';
+import '../../auth/views/login_screen.dart';
 import '../bloc/home_cubit.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, authState) {
+        print('🏠 [HomeScreen] Estado de autenticação: $authState');
+        
+        // ✅ 1. Enquanto verifica, mostra splash/loading (pode ser o próprio SplashScreen ou um indicador aqui)
+        if (authState is AuthInitial || authState is AuthChecking) {
+          return const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Verificando autenticação...'),
+                ],
+              ),
+            ),
+          );
+        }
+        
+        // ✅ 2. SEMPRE mostra o conteúdo principal. O acesso anônimo é permitido para ver lojas.
+        return const _MainContent();
+      },
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _MainContent extends StatefulWidget {
+  const _MainContent();
+
+  @override
+  State<_MainContent> createState() => _MainContentState();
+}
+
+class _MainContentState extends State<_MainContent> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Inicia a verificação de autenticação de forma silenciosa se ainda não foi feita
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authCubit = context.read<AuthCubit>();
+      if (authCubit.state is AuthInitial) {
+        authCubit.checkAuthStatus();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
-        if (state is AuthUnauthenticated) {
-          Navigator.pushReplacementNamed(context, '/login');
+        if (state is AuthAuthenticated) {
+          // Quando autenticar (ou re-autenticar via refresh), atualiza dados privados
+          // context.read<CarrinhoCubit>().carregarCarrinho();
         }
       },
       child: BlocBuilder<HomeCubit, HomeState>(
@@ -40,13 +88,64 @@ class _HomeScreenState extends State<HomeScreen> {
             appBar: _buildAppBar(currentIndex),
             drawer: AppDrawer(
               selectedIndex: currentIndex,
-              onItemSelected: (index) {
-                context.read<HomeCubit>().changeTab(index);
-              },
+              onItemSelected: (index) => _handleTabChange(context, index),
             ),
             body: _buildBody(currentIndex),
+            // ✅ Bottom Bar Global do Carrinho - Reage ao estado, sem forçar login
+            bottomNavigationBar: BlocBuilder<CarrinhoCubit, CarrinhoState>(
+              builder: (context, carrinhoState) {
+                if (carrinhoState is CarrinhoLoaded && 
+                    carrinhoState.totalItens > 0 && 
+                    carrinhoState.lojaNome != null) {
+                  return CarrinhoBottomBar(
+                    lojaNome: carrinhoState.lojaNome!,
+                    onTap: () => Navigator.pushNamed(context, '/carrinho'),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           );
         },
+      ),
+    );
+  }
+
+  void _handleTabChange(BuildContext context, int index) {
+    // ✅ Só exige login para Pedidos (1) e Perfil (2)
+    if (index == 1 || index == 2) {
+      final authState = context.read<AuthCubit>().state;
+      if (authState is! AuthAuthenticated) {
+        _mostrarDialogLogin(context);
+        return;
+      }
+    }
+    
+    if (index == 0) {
+      context.read<LojasCubit>().refreshList();
+    }
+    context.read<HomeCubit>().changeTab(index);
+  }
+
+  void _mostrarDialogLogin(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Entre para continuar'),
+        content: const Text('Para acessar esta área, você precisa estar conectado à sua conta.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Agora não'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/login');
+            },
+            child: const Text('Fazer login'),
+          ),
+        ],
       ),
     );
   }
@@ -55,11 +154,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (currentIndex == 0) {
       return HomeAppBar(
         onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
-        onAddressTap: () {
-          // Navegação de endereço já tratada no HomeAppBar para Routes.ENDERECOS
-        },
+        onAddressTap: () {},
         onSearchTap: () => _showFilterBottomSheet(context),
-        onProfileTap: () => context.read<HomeCubit>().changeTab(2),
+        onProfileTap: () => _handleTabChange(context, 2),
       );
     }
 
@@ -74,29 +171,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBody(int currentIndex) {
     switch (currentIndex) {
-      case 0:
-        return const LojasView();
-      case 1:
-        return const PedidosView();
-      case 2:
-        return const PerfilView();
-      default:
-        return const LojasView();
+      case 0: return const LojasView();
+      case 1: return const PedidosView();
+      case 2: return const PerfilView();
+      default: return const LojasView();
     }
   }
 
   String _getPageTitle(int index) {
     switch (index) {
-      case 0:
-        return 'Lojas';
-      case 1:
-        return 'Meus Pedidos';
-      case 2:
-        return 'Perfil';
-      case 3:
-        return 'Configurações';
-      default:
-        return '';
+      case 0: return 'Lojas';
+      case 1: return 'Meus Pedidos';
+      case 2: return 'Perfil';
+      default: return '';
     }
   }
 

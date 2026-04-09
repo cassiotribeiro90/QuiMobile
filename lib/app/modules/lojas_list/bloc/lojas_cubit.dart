@@ -11,6 +11,9 @@ class LojasCubit extends Cubit<LojasState> {
   String? _searchQuery;
   List<LojaResumo> _todasLojas = [];
   PaginationModel? _lastPagination;
+  
+  // ✅ Flag para evitar loop infinito e múltiplas chamadas simultâneas
+  bool _isFetching = false;
 
   LojasCubit(this._repository) : super(LojasInitial());
 
@@ -19,6 +22,9 @@ class LojasCubit extends Cubit<LojasState> {
     int perPage = 10,
     bool isLoadMore = false,
   }) async {
+    if (_isFetching) return;
+    _isFetching = true;
+
     try {
       if (!isLoadMore) {
         emit(LojasLoading());
@@ -55,6 +61,8 @@ class LojasCubit extends Cubit<LojasState> {
       ));
     } catch (e) {
       emit(LojasError('Erro ao carregar lojas: $e'));
+    } finally {
+      _isFetching = false;
     }
   }
 

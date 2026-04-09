@@ -9,14 +9,16 @@ abstract class AuthState extends Equatable {
 
 class AuthInitial extends AuthState {}
 
+class AuthChecking extends AuthState {}
+
 class AuthLoading extends AuthState {}
 
 class AuthAuthenticated extends AuthState {
-  final String? token;
-  const AuthAuthenticated({this.token});
+  final String accessToken;
+  const AuthAuthenticated({required this.accessToken});
 
   @override
-  List<Object?> get props => [token];
+  List<Object?> get props => [accessToken];
 }
 
 class AuthUnauthenticated extends AuthState {}
@@ -30,5 +32,5 @@ class AuthError extends AuthState {
 }
 
 class AuthSuccess extends AuthAuthenticated {
-  const AuthSuccess({super.token});
+  const AuthSuccess({required super.accessToken});
 }

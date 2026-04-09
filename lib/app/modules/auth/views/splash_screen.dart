@@ -27,20 +27,15 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listenWhen: (previous, current) {
-        // Garante que só reagiremos a estados finais de decisão
+        // Reage a estados finais de decisão
         return current is AuthAuthenticated || current is AuthUnauthenticated;
       },
       listener: (context, state) {
-        debugPrint('Splash: Novo estado recebido: $state');
+        debugPrint('Splash: Novo estado recebido: \$state');
         
-        if (state is AuthAuthenticated) {
-          debugPrint('Splash: Navegando para HOME');
-          Navigator.of(context).pushNamedAndRemoveUntil(Routes.HOME, (route) => false);
-        } else if (state is AuthUnauthenticated) {
-          debugPrint('Splash: Navegando para LOGIN');
-          // Usamos pushNamedAndRemoveUntil para limpar a pilha e garantir a troca
-          Navigator.of(context).pushNamedAndRemoveUntil(Routes.LOGIN, (route) => false);
-        }
+        // ✅ SEMPRE navega para HOME. O acesso anônimo é permitido.
+        debugPrint('Splash: Navegando para HOME');
+        Navigator.of(context).pushNamedAndRemoveUntil(Routes.HOME, (route) => false);
       },
       child: const Scaffold(
         backgroundColor: Color(0xFF3949AB),

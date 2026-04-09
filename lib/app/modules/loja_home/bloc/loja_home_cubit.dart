@@ -1,123 +1,203 @@
-import 'dart:async';
+// lib/modules/loja_home/bloc/loja_home_cubit.dart
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../repository/loja_repository.dart';
 import 'loja_home_state.dart';
 import '../../../models/secao_model.dart';
+import '../../../models/produto_model.dart';
 
 class LojaHomeCubit extends Cubit<LojaHomeState> {
   final LojaHomeRepository _repository;
   final int lojaId;
-  
+
   int _currentPage = 1;
-  int _totalPages = 1;
+  bool _hasMore = true;
   String? _searchQuery;
-  int? _selectedCategoriaId;
+  int? _categoriaId;
   String? _orderBy;
+
+  // Controle de requisições simultâneas
+  bool _isLoading = false;
 
   LojaHomeCubit(this._repository, this.lojaId) : super(LojaHomeInitial());
 
-  Future<void> loadLoja({bool reset = true}) async {
-    final currentState = state;
-    
-    if (reset) {
-      _currentPage = 1;
-      if (currentState is LojaHomeLoaded) {
-        // ✅ Mantém as seções antigas e ativa isFiltering para mostrar o overlay semi-transparente
-        emit(currentState.copyWith(isFiltering: true, isLoadingMore: false));
-      } else {
-        emit(LojaHomeLoading());
-      }
-    } else {
-      if (currentState is LojaHomeLoaded) {
-        emit(currentState.copyWith(isLoadingMore: true, isFiltering: false));
-      } else {
-        emit(LojaHomeLoadingMore(secoes: currentState.secoes, loja: currentState.loja));
-      }
+  /// Carrega dados iniciais da loja
+  Future<void> loadLoja() async {
+    if (_isLoading) return;
+
+    _isLoading = true;
+    _currentPage = 1;
+
+    emit(LojaHomeLoading());
+
+    try {
+      final response = await _repository.getLojaDetalhe(
+        id: lojaId,
+        page: 1,
+        perPage: 20,
+        categoriaId: _categoriaId,
+        search: _searchQuery,
+        orderBy: _orderBy,
+      );
+
+      _hasMore = response.pagination.page < response.pagination.totalPages;
+
+      // ✅ Usa os IDs originais da API para remover duplicatas
+      final secoesLimpa = _removerDuplicatas(response.secoes);
+
+      emit(LojaHomeLoaded(
+        loja: response,
+        secoes: secoesLimpa,
+        selectedCategories: _categoriaId != null ? [_categoriaId!] : [],
+        orderBy: _orderBy,
+        searchQuery: _searchQuery,
+        hasMore: _hasMore,
+        currentPage: 1,
+        totalPages: response.pagination.totalPages,
+        pagination: response.pagination,
+        filterOptions: response.filterOptions,
+        activeFilterCount: _calcularFiltrosAtivos(),
+      ));
+    } catch (e) {
+      emit(LojaHomeError('Erro ao carregar loja: $e'));
+    } finally {
+      _isLoading = false;
     }
+  }
+
+  /// Carrega mais produtos (paginacao)
+  Future<void> loadMore() async {
+    final currentState = state;
+    if (_isLoading) return;
+    if (currentState is! LojaHomeLoaded) return;
+    if (!_hasMore) return;
+
+    _isLoading = true;
+    _currentPage++;
+
+    emit(currentState.copyWith(isLoadingMore: true));
 
     try {
       final response = await _repository.getLojaDetalhe(
         id: lojaId,
         page: _currentPage,
         perPage: 20,
-        categoriaId: _selectedCategoriaId,
+        categoriaId: _categoriaId,
         search: _searchQuery,
         orderBy: _orderBy,
       );
 
-      _totalPages = response.pagination.totalPages;
-      
-      final List<SecaoModel> currentSecoes = reset ? [] : state.secoes;
-      final mergedSecoes = reset ? response.secoes : _mergeSecoes(currentSecoes, response.secoes);
+      _hasMore = response.pagination.page < response.pagination.totalPages;
 
-      emit(LojaHomeLoaded(
-        loja: response,
-        secoes: mergedSecoes,
-        selectedCategories: _selectedCategoriaId != null ? [_selectedCategoriaId!] : [],
-        orderBy: _orderBy,
-        activeFilterCount: (_selectedCategoriaId != null ? 1 : 0) + 
-                          (_orderBy != null ? 1 : 0) +
-                          (_searchQuery != null && _searchQuery!.isNotEmpty ? 1 : 0),
-        hasMore: _currentPage < _totalPages,
+      // ✅ Mescla seções usando IDs originais
+      final novasSecoes = _mesclarSecoes(currentState.secoes, response.secoes);
+
+      emit(currentState.copyWith(
+        secoes: novasSecoes,
         currentPage: _currentPage,
-        totalPages: _totalPages,
-        searchQuery: _searchQuery,
-        pagination: response.pagination,
-        filterOptions: response.filterOptions,
+        hasMore: _hasMore,
         isLoadingMore: false,
-        isFiltering: false,
       ));
     } catch (e) {
-      emit(LojaHomeError('Erro ao carregar dados da loja: $e', secoes: state.secoes, loja: state.loja));
+      _currentPage--;
+      emit(currentState.copyWith(isLoadingMore: false));
+      emit(LojaHomeError('Erro ao carregar mais itens: $e'));
+    } finally {
+      _isLoading = false;
     }
-  }
-
-  void loadMore() {
-    if (state is LojaHomeLoaded && _currentPage < _totalPages && !(state as LojaHomeLoaded).isLoadingMore && !(state as LojaHomeLoaded).isFiltering) {
-      _currentPage++;
-      loadLoja(reset: false);
-    }
-  }
-
-  List<SecaoModel> _mergeSecoes(List<SecaoModel> current, List<SecaoModel> next) {
-    final Map<int, SecaoModel> map = {for (var s in current) s.id: s};
-    for (var n in next) {
-      if (map.containsKey(n.id)) {
-        final existing = map[n.id]!;
-        map[n.id] = SecaoModel(
-          id: existing.id,
-          nome: existing.nome,
-          icone: existing.icone,
-          ordem: existing.ordem,
-          totalProdutos: n.totalProdutos,
-          produtos: [...existing.produtos, ...n.produtos],
-        );
-      } else {
-        map[n.id] = n;
-      }
-    }
-    final merged = map.values.toList();
-    merged.sort((a, b) => a.ordem.compareTo(b.ordem));
-    return merged;
   }
 
   Future<void> applyFilters({String? search, int? categoriaId, String? orderBy}) async {
-    _searchQuery = (search != null && search.trim().isNotEmpty) ? search.trim() : null;
-    _selectedCategoriaId = categoriaId;
+    _searchQuery = search?.trim().isEmpty == true ? null : search?.trim();
+    _categoriaId = categoriaId;
     _orderBy = orderBy;
-    _currentPage = 1;
-    await loadLoja(reset: true);
+    await loadLoja();
   }
 
   Future<void> clearFilters() async {
     _searchQuery = null;
-    _selectedCategoriaId = null;
+    _categoriaId = null;
     _orderBy = null;
-    _currentPage = 1;
-    await loadLoja(reset: true);
+    await loadLoja();
   }
 
   Future<void> refresh() async {
-    await loadLoja(reset: true);
+    await loadLoja();
+  }
+
+  List<SecaoModel> _removerDuplicatas(List<SecaoModel> secoes) {
+    final Set<int> idsVistos = {};
+
+    return secoes.map((secao) {
+      final produtosUnicos = <ProdutoModel>[];
+
+      for (var produto in secao.produtos) {
+        if (idsVistos.add(produto.id)) {
+          produtosUnicos.add(produto);
+        }
+      }
+
+      return SecaoModel(
+        id: secao.id,
+        nome: secao.nome,
+        icone: secao.icone,
+        ordem: secao.ordem,
+        totalProdutos: produtosUnicos.length,
+        produtos: produtosUnicos,
+      );
+    }).toList();
+  }
+
+  List<SecaoModel> _mesclarSecoes(List<SecaoModel> atuais, List<SecaoModel> novas) {
+    final Set<int> idsExistentes = {};
+    for (var secao in atuais) {
+      for (var produto in secao.produtos) {
+        idsExistentes.add(produto.id);
+      }
+    }
+
+    final Map<int, SecaoModel> mapaSecoes = {for (var s in atuais) s.id: s};
+
+    for (var novaSecao in novas) {
+      final produtosNovos = <ProdutoModel>[];
+      for (var produto in novaSecao.produtos) {
+        if (idsExistentes.add(produto.id)) {
+          produtosNovos.add(produto);
+        }
+      }
+
+      if (produtosNovos.isEmpty && !mapaSecoes.containsKey(novaSecao.id)) continue;
+
+      if (mapaSecoes.containsKey(novaSecao.id)) {
+        final existente = mapaSecoes[novaSecao.id]!;
+        mapaSecoes[novaSecao.id] = SecaoModel(
+          id: existente.id,
+          nome: existente.nome,
+          icone: existente.icone,
+          ordem: existente.ordem,
+          totalProdutos: existente.produtos.length + produtosNovos.length,
+          produtos: [...existente.produtos, ...produtosNovos],
+        );
+      } else {
+        mapaSecoes[novaSecao.id] = SecaoModel(
+          id: novaSecao.id,
+          nome: novaSecao.nome,
+          icone: novaSecao.icone,
+          ordem: novaSecao.ordem,
+          totalProdutos: produtosNovos.length,
+          produtos: produtosNovos,
+        );
+      }
+    }
+
+    return mapaSecoes.values.toList()..sort((a, b) => a.ordem.compareTo(b.ordem));
+  }
+
+  int _calcularFiltrosAtivos() {
+    int count = 0;
+    if (_categoriaId != null) count++;
+    if (_orderBy != null) count++;
+    if (_searchQuery != null && _searchQuery!.isNotEmpty) count++;
+    return count;
   }
 }

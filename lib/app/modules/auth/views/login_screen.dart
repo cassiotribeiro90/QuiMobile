@@ -40,21 +40,38 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Login'),
+        centerTitle: true,
+        elevation: 0,
+      ),
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            Navigator.pushReplacementNamed(context, Routes.HOME);
+            // ✅ Se veio de um redirecionamento (tem telas anteriores), volta até a home
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              Routes.HOME,
+                  (route) => route.isFirst,
+            );
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
         child: SingleChildScrollView(
           child: Container(
-            height: MediaQuery.of(context).size.height,
+            height: MediaQuery.of(context).size.height - kToolbarHeight - MediaQuery.of(context).padding.top,
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -80,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(color: Colors.grey, fontSize: 16),
                 ),
                 const SizedBox(height: 40),
-                
+
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -93,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 TextField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -111,20 +128,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                
+
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      // TODO: Implementar recuperação de senha
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Funcionalidade em desenvolvimento'),
+                        ),
+                      );
+                    },
                     child: const Text('Esqueceu a senha?'),
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (context, state) {
                     final isLoading = state is AuthLoading;
-                    
+
                     return SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -140,25 +164,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: isLoading
                             ? const CircularProgressIndicator(color: Colors.white)
                             : const Text(
-                                'ENTRAR',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                          'ENTRAR',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     );
                   },
                 ),
                 const SizedBox(height: 30),
-                
+
                 Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text('Não tem uma conta?'),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          // TODO: Navegar para tela de cadastro
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Cadastro em desenvolvimento'),
+                            ),
+                          );
+                        },
                         child: const Text(
                           'Cadastre-se',
                           style: TextStyle(fontWeight: FontWeight.bold),

@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 
 class AppConfig {
+  static const String LOGIN = 'app/auth/login';
+  static const String REFRESH_TOKEN = 'app/auth/refresh-token';
+
   static String get baseUrl {
     // Variável de ambiente sobrescreve tudo
     const envUrl = String.fromEnvironment('API_URL');

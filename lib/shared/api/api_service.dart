@@ -1,66 +1,76 @@
 import 'package:dio/dio.dart';
-import '../../app/di/dependencies.dart';
-import '../../app_config.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../services/token_service.dart';
-import 'interceptors/auth_interceptor.dart';
+import 'interceptors/refresh_interceptor.dart';
 
 class ApiService {
-  final Dio _dio;
+  // 🔥 Singleton manual igual ao gestor
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  
+  late final TokenService _tokenService;
+  late final Dio _dio;
+  
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-  ApiService()
-      : _dio = Dio(
-          BaseOptions(
-            baseUrl: AppConfig.baseUrl,
-            connectTimeout: const Duration(seconds: 10),
-            receiveTimeout: const Duration(seconds: 10),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          ),
-        ) {
-    _dio.interceptors.add(AuthInterceptor(getIt<TokenService>(), _dio));
-    _dio.interceptors.add(LogInterceptor(responseBody: true, requestBody: true));
-  }
+  ApiService._internal() {
+    _tokenService = TokenService();
+    
+    const String baseUrlEnv = String.fromEnvironment('API_URL');
+    
+    final options = BaseOptions(
+      baseUrl: baseUrlEnv.isNotEmpty 
+          ? baseUrlEnv 
+          : (kIsWeb 
+               ? 'http://localhost:8001/api/'
+              : (defaultTargetPlatform == TargetPlatform.android 
+                  ? 'http://10.0.2.2:8001/api/'
+                  : 'http://localhost:8001/api/')),
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    );
 
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
-    try {
-      return await _dio.get(path, queryParameters: queryParameters);
-    } on DioException catch (e) {
-      throw _handleError(e);
+    _dio = Dio(options);
+    
+    _dio.interceptors.add(RefreshInterceptor(
+      dio: _dio,
+      tokenService: _tokenService,
+      navigatorKey: navigatorKey,
+    ));
+    
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        responseBody: true, 
+        requestBody: true,
+        requestHeader: true,
+      ));
     }
   }
+  
+  Future<Response> post(String path, {dynamic data, bool requiresAuth = true}) => 
+      _dio.post(path, data: data, options: Options(extra: {'requiresAuth': requiresAuth}));
+      
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters, 
+    bool requiresAuth = true
+  }) => _dio.get(
+    path, 
+    queryParameters: queryParameters,
+    options: Options(extra: {'requiresAuth': requiresAuth})
+  );
+      
+  Future<Response> put(String path, {dynamic data, bool requiresAuth = true}) => 
+      _dio.put(path, data: data, options: Options(extra: {'requiresAuth': requiresAuth}));
+      
+  Future<Response> delete(String path, {bool requiresAuth = true}) =>
+      _dio.delete(path, options: Options(extra: {'requiresAuth': requiresAuth}));
 
-  Future<Response> post(String path, {dynamic data}) async {
-    try {
-      return await _dio.post(path, data: data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  Future<Response> put(String path, {dynamic data}) async {
-    try {
-      return await _dio.put(path, data: data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  Future<Response> delete(String path) async {
-    try {
-      return await _dio.delete(path);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  Exception _handleError(DioException e) {
-    if (e.response != null) {
-      final message = e.response?.data['message'] ?? 'Erro inesperado';
-      return Exception(message);
-    } else {
-      return Exception('Falha na conexão com o servidor');
-    }
-  }
+  Dio get dio => _dio;
+  TokenService get tokenService => _tokenService;
 }

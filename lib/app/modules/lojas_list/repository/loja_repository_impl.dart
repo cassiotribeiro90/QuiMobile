@@ -31,6 +31,7 @@ class LojaRepositoryImpl implements LojaRepository {
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
       },
+      requiresAuth: false, // ✅ Permitindo acesso público
     );
 
     if (response.data['success'] == true) {
@@ -42,13 +43,13 @@ class LojaRepositoryImpl implements LojaRepository {
 
   @override
   Future<LojaResumo> getLojaById(int id) async {
-    final response = await _apiClient.get('/app/loja/$id');
+    final response = await _apiClient.get('/app/loja/$id', requiresAuth: false); // ✅ Público
     return LojaResumo.fromJson(response.data['data']);
   }
 
   @override
   Future<List<LojaResumo>> getLojasDestaque() async {
-    final response = await _apiClient.get('/app/loja/destaque');
+    final response = await _apiClient.get('/app/loja/destaque', requiresAuth: false); // ✅ Público
     if (response.data['success'] == true) {
       final List items = response.data['data'];
       return items.map((json) => LojaResumo.fromJson(json)).toList();
