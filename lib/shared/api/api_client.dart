@@ -27,8 +27,12 @@ class ApiClient {
               : (defaultTargetPlatform == TargetPlatform.android 
                   ? 'http://10.0.2.2:8001/api/'
                   : 'http://localhost:8001/api/')),
-      connectTimeout: const Duration(seconds: 30), // ✅ Aumentado para 30s
-      receiveTimeout: const Duration(seconds: 30), // ✅ Aumentado para 30s
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      validateStatus: (status) {
+        // ✅ Aceita 409 como resposta válida (não lança exceção automaticamente)
+        return status != null && (status < 500 || status == 409);
+      },
       headers: {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'

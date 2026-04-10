@@ -40,7 +40,8 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _cubit.loadLoja();
-        getIt<CarrinhoCubit>().carregarCarrinho();
+        // ✅ Força recarregar carrinho ao entrar na loja
+        getIt<CarrinhoCubit>().carregarCarrinho(forceRefresh: true);
       }
     });
 
@@ -179,20 +180,16 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
   }
 
   Widget? _buildBottomBar(LojaHomeState state) {
-    final loja = state.loja;
-    if (loja == null) return null;
-
     return BlocBuilder<CarrinhoCubit, CarrinhoState>(
-      buildWhen: (prev, curr) {
-        if (prev is CarrinhoLoaded && curr is CarrinhoLoaded) {
-          return prev.totalItens != curr.totalItens;
-        }
-        return true;
-      },
       builder: (context, carrinhoState) {
-        if (carrinhoState is CarrinhoLoaded && carrinhoState.totalItens > 0) {
+        final isLoading = carrinhoState is CarrinhoLoaded && carrinhoState.isUpdating;
+        final totalItens = carrinhoState is CarrinhoLoaded ? carrinhoState.totalItens : 0;
+        final lojaNome = carrinhoState is CarrinhoLoaded ? carrinhoState.lojaNome : null;
+        
+        if (totalItens > 0 && lojaNome != null) {
           return CarrinhoBottomBar(
-            lojaNome: loja.nome,
+            lojaNome: lojaNome,
+            isLoading: isLoading, // ✅ Passa loading para o shimmer
             onTap: () => Navigator.pushNamed(context, '/carrinho'),
           );
         }
@@ -264,7 +261,7 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
               if (carrinhoState is CarrinhoLoaded) {
                 for (var item in carrinhoState.itens) {
                   quantidades[item.produtoId] = item.quantidade;
-                  itemIds[item.produtoId] = item.produtoId;
+                  itemIds[item.produtoId] = item.id;
                 }
               }
               return {

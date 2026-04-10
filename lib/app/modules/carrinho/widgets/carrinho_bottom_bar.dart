@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/carrinho_cubit.dart';
 import '../../../core/theme/app_theme_extension.dart';
+import '../../../../shared/widgets/shimmer_loading.dart';
 
 class CarrinhoBottomBar extends StatelessWidget {
   final VoidCallback onTap;
   final String lojaNome;
+  final bool isLoading;
 
   const CarrinhoBottomBar({
     super.key,
     required this.onTap,
     required this.lojaNome,
+    this.isLoading = false,
   });
 
   @override
@@ -42,7 +45,7 @@ class CarrinhoBottomBar extends StatelessWidget {
           ),
           child: SafeArea(
             child: InkWell(
-              onTap: onTap,
+              onTap: isLoading ? null : onTap,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Row(
@@ -53,11 +56,20 @@ class CarrinhoBottomBar extends StatelessWidget {
                         color: context.primaryColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                      child: isLoading 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.shopping_bag_outlined,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                     ),
                     const SizedBox(width: 12),
                     
@@ -66,39 +78,79 @@ class CarrinhoBottomBar extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Sacola - $lojaNome',
-                            style: context.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
+                          if (isLoading)
+                            ShimmerLoading(
+                              isLoading: true,
+                              child: Container(
+                                width: 150,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            )
+                          else
+                            Text(
+                              'Sacola - $lojaNome',
+                              style: context.bodyMedium.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '$totalItens ${totalItens == 1 ? 'item' : 'itens'}',
-                            style: context.bodySmall.copyWith(
-                              color: context.textSecondary,
+                          const SizedBox(height: 4),
+                          if (isLoading)
+                            ShimmerLoading(
+                              isLoading: true,
+                              child: Container(
+                                width: 80,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            )
+                          else
+                            Text(
+                              '$totalItens ${totalItens == 1 ? 'item' : 'itens'}',
+                              style: context.bodySmall.copyWith(
+                                color: context.textSecondary,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
                     
-                    Row(
-                      children: [
-                        Text(
-                          'R\$ ${subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
-                          style: context.titleSmall.copyWith(
-                            color: context.primaryColor,
-                            fontWeight: FontWeight.bold,
+                    if (isLoading)
+                      ShimmerLoading(
+                        isLoading: true,
+                        child: Container(
+                          width: 80,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.arrow_forward_ios, 
-                          size: 14, 
-                          color: context.primaryColor
-                        ),
-                      ],
-                    ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Text(
+                            'R\$ ${subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
+                            style: context.titleSmall.copyWith(
+                              color: context.primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.arrow_forward_ios, 
+                            size: 14, 
+                            color: context.primaryColor
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),

@@ -7,43 +7,56 @@ import 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final ApiClient _apiClient;
+  bool _isProcessing = false;
 
   AuthCubit(this._apiClient) : super(AuthInitial());
 
   Future<void> checkAuthStatus() async {
+    if (_isProcessing) return;
+    _isProcessing = true;
+
     print('🔐 [AuthCubit] Iniciando checkAuthStatus...');
     emit(AuthChecking());
     
-    final String? token = _apiClient.tokenService.getAccessToken();
-    print('🔐 [AuthCubit] Token existe? \${token != null}');
-    
-    if (token == null || token.isEmpty) {
-      print('🔐 [AuthCubit] Sem token, emitindo AuthUnauthenticated');
-      emit(AuthUnauthenticated());
-      return;
-    }
-    
-    if (_apiClient.tokenService.isTokenExpired()) {
-      print('🔐 [AuthCubit] Token expirado, tentando refresh...');
-      final refreshSuccess = await _apiClient.tokenService.refreshToken(_apiClient.dio);
+    try {
+      final String? token = _apiClient.tokenService.getAccessToken();
       
-      if (refreshSuccess) {
-        final newToken = _apiClient.tokenService.getAccessToken();
-        print('🔐 [AuthCubit] Refresh bem-sucedido!');
-        emit(AuthAuthenticated(accessToken: newToken!));
-      } else {
-        print('🔐 [AuthCubit] Refresh falhou, limpando tokens');
-        await _apiClient.tokenService.clearTokens();
+      if (token == null || token.isEmpty) {
         emit(AuthUnauthenticated());
+        return;
       }
-    } else {
-      print('🔐 [AuthCubit] Token válido, emitindo AuthAuthenticated');
-      emit(AuthAuthenticated(accessToken: token));
+      
+      if (_apiClient.tokenService.isTokenExpired()) {
+        final refreshSuccess = await _apiClient.tokenService.refreshToken(_apiClient.dio);
+        
+        if (refreshSuccess) {
+          final newToken = _apiClient.tokenService.getAccessToken();
+          if (newToken != null) {
+            emit(AuthAuthenticated(accessToken: newToken));
+          } else {
+            // Caso bizarro onde refresh deu true mas token sumiu
+            await _apiClient.tokenService.clearTokens();
+            emit(AuthUnauthenticated());
+          }
+        } else {
+          await _apiClient.tokenService.clearTokens();
+          emit(AuthUnauthenticated());
+        }
+      } else {
+        emit(AuthAuthenticated(accessToken: token));
+      }
+    } catch (e) {
+      print('🔐 [AuthCubit] Erro no checkAuthStatus: $e');
+      emit(AuthUnauthenticated());
+    } finally {
+      _isProcessing = false;
     }
   }
 
   Future<void> login(String email, String senha) async {
-    print('📱 [LOGIN] Tentando login com email: \$email');
+    if (_isProcessing) return;
+    _isProcessing = true;
+
     emit(AuthLoading());
 
     try {
@@ -53,73 +66,41 @@ class AuthCubit extends Cubit<AuthState> {
         requiresAuth: false,
       );
 
-      print('📱 [LOGIN] Status code: \${response.statusCode}');
-      print('📱 [LOGIN] Dados: \${response.data}');
-
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'];
         final String accessToken = data['access_token']?.toString() ?? '';
         final String? refreshToken = data['refresh_token']?.toString();
         final int expiresIn = data['expires_in'] ?? 7200;
         
-        if (accessToken.isNotEmpty) {
-          final int tokenLength = accessToken.length;
-          final int displayLength = min<int>(20, tokenLength);
-          
-          print('📱 [LOGIN] Token recebido: \${accessToken.substring(0, displayLength)}...');
-          
-          await _apiClient.tokenService.saveTokens(
-            accessToken, 
-            refreshToken, 
-            expiresIn: expiresIn
-          );
-          
-          await _apiClient.tokenService.saveBaseUrl(_apiClient.dio.options.baseUrl);
-          
-          final savedToken = _apiClient.tokenService.getAccessToken();
-          print('📱 [LOGIN] Token recuperado após salvar: ${savedToken != null ? 'OK' : 'FALHOU'}');
-
-          emit(AuthAuthenticated(accessToken: accessToken));
-        } else {
-          print('📱 [LOGIN] Erro: Token não recebido');
-          emit(const AuthError('Token não recebido'));
-        }
-      } 
-      else if (response.statusCode == 401 || response.data['success'] == false) {
-        final message = response.data['message'] ?? 'Email ou senha inválidos';
-        print('📱 [LOGIN] Falha: \$message');
-        emit(AuthError(message));
-      } 
-      else {
-        final message = response.data['message'] ?? 'Erro no login';
-        print('📱 [LOGIN] Erro inesperado no status code: \${response.statusCode} - \$message');
-        emit(AuthError(message));
-      }
-      
-    } on DioException catch (e) {
-      print('📱 [LOGIN] DioException: \${e.response?.statusCode} - \${e.response?.data}');
-      
-      if (e.response?.statusCode == 401) {
-        final message = e.response?.data['message'] ?? 'Email ou senha inválidos';
-        emit(AuthError(message));
+        await _apiClient.tokenService.saveTokens(accessToken, refreshToken, expiresIn: expiresIn);
+        emit(AuthAuthenticated(accessToken: accessToken));
       } else {
-        emit(const AuthError('Erro de conexão'));
+        emit(AuthError(response.data['message'] ?? 'Erro no login'));
       }
-    } catch (e, stacktrace) {
-      print('📱 [LOGIN] Exceção: \$e');
-      print('📱 [LOGIN] Stacktrace: \$stacktrace');
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Erro de conexão';
+      emit(AuthError(message));
+    } catch (e) {
       emit(const AuthError('Erro inesperado'));
+    } finally {
+      _isProcessing = false;
     }
   }
 
   Future<void> logout() async {
+    if (_isProcessing) return;
+    _isProcessing = true;
+
     print('📱 [LOGOUT] Iniciando logout...');
     try {
-      await _apiClient.post('app/auth/logout', requiresAuth: true);
-    } catch (_) {}
-    
-    await _apiClient.tokenService.clearTokens();
-    emit(AuthUnauthenticated());
+      await _apiClient.post('app/auth/logout', requiresAuth: false);
+    } catch (e) {
+      print('📱 [LOGOUT] Erro no request de logout (ignorado): $e');
+    } finally {
+      await _apiClient.tokenService.clearTokens();
+      emit(AuthUnauthenticated());
+      _isProcessing = false;
+    }
   }
 
   Future<void> checkAuth() => checkAuthStatus();

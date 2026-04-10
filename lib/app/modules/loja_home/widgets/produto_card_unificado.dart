@@ -5,40 +5,29 @@ import '../../../core/theme/app_theme_extension.dart';
 import '../../../models/produto_model.dart';
 import '../../carrinho/bloc/carrinho_cubit.dart';
 import '../../carrinho/widgets/quantity_selector.dart';
-import '../../../../shared/services/token_service.dart';
 
 class ProdutoCardUnificado extends StatelessWidget {
   final ProdutoModel produto;
   final int lojaId;
   final int quantidadeNoCarrinho;
   final int? itemIdNoCarrinho;
-  final VoidCallback? onTap;
+  final VoidCallback onTap; // ✅ ÚNICO callback - abre bottom sheet
 
-  static int _instanciasCriadas = 0;
-  static int _buildCount = 0;
-  final int _instanciaId;
-
-  ProdutoCardUnificado({
-    required Key key,
+  const ProdutoCardUnificado({
+    super.key,
     required this.produto,
     required this.lojaId,
     required this.quantidadeNoCarrinho,
     this.itemIdNoCarrinho,
-    this.onTap,
-  })  : _instanciaId = ++_instanciasCriadas,
-        super(key: key);
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    _buildCount++;
-    print('🎴 [ProdutoCard] INSTÂNCIA #$_instanciaId - BUILD #$_buildCount');
-    print('   Produto: ID=${produto.id} - ${produto.nome}');
-    print('   Quantidade no carrinho: $quantidadeNoCarrinho');
-
     final temNoCarrinho = quantidadeNoCarrinho > 0;
 
     return InkWell(
-      onTap: onTap,
+      onTap: onTap, // ✅ Card inteiro abre bottom sheet
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -73,22 +62,25 @@ class ProdutoCardUnificado extends StatelessWidget {
                   const SizedBox(height: 4),
                   _buildInfo(context),
                   const SizedBox(height: 12),
+                  
+                  // ✅ Se já está no carrinho, mostra seletor de quantidade para ajuste rápido
                   if (temNoCarrinho && itemIdNoCarrinho != null)
                     QuantitySelector(
                       quantity: quantidadeNoCarrinho,
+                      itemName: produto.nome, // ✅ Passa o nome do produto para o diálogo
                       onChanged: (novaQuantidade) {
-                        if (novaQuantidade == 0) {
-                          context.read<CarrinhoCubit>().removerItem(itemIdNoCarrinho!);
-                        } else {
-                          context.read<CarrinhoCubit>().atualizarQuantidade(itemIdNoCarrinho!, novaQuantidade);
-                        }
+                        context.read<CarrinhoCubit>().atualizarQuantidade(
+                          itemIdNoCarrinho!, 
+                          novaQuantidade
+                        );
                       },
                     )
                   else
+                    // ✅ Botão "Adicionar" também abre o bottom sheet (onTap)
                     SizedBox(
                       height: 32,
                       child: ElevatedButton(
-                        onPressed: () => _handleAdicionar(context),
+                        onPressed: onTap, // ✅ MESMO callback do card!
                         style: ElevatedButton.styleFrom(
                           backgroundColor: context.primaryColor,
                           foregroundColor: Colors.white,
@@ -98,7 +90,10 @@ class ProdutoCardUnificado extends StatelessWidget {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text('Adicionar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Adicionar', 
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)
+                        ),
                       ),
                     ),
                 ],
@@ -110,44 +105,6 @@ class ProdutoCardUnificado extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-
-  void _handleAdicionar(BuildContext context) {
-    if (!TokenService().isLoggedIn()) {
-      _showLoginDialog(context);
-      return;
-    }
-
-    context.read<CarrinhoCubit>().adicionarItemSimples(
-          produtoId: produto.id,
-          lojaId: lojaId,
-          nome: produto.nome,
-          imagem: produto.imagem,
-          preco: produto.precoAtual,
-        );
-  }
-
-  void _showLoginDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Entre para continuar'),
-        content: const Text('Para adicionar itens à sua sacola, você precisa estar conectado à sua conta.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Agora não'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/login');
-            },
-            child: const Text('Entrar'),
-          ),
-        ],
       ),
     );
   }

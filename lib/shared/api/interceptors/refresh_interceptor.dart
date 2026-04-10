@@ -11,6 +11,7 @@ class RefreshInterceptor extends QueuedInterceptor {
   final GlobalKey<NavigatorState> _navigatorKey;
 
   final Set<String> _refreshAttempts = {};
+  static bool _isRedirecting = false;
 
   RefreshInterceptor({
     required Dio dio,
@@ -35,31 +36,31 @@ class RefreshInterceptor extends QueuedInterceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    // 1. Verifica se a requisição requer autenticação
     final bool requiresAuth = err.requestOptions.extra['requiresAuth'] ?? true;
     
-    // ✅ Se for endpoint público (requiresAuth: false) e der erro (401 ou qualquer outro),
-    // apenas repassamos o erro sem tentar refresh ou redirecionar.
     if (!requiresAuth) {
-      debugPrint('ℹ️ [RefreshInterceptor] Erro em endpoint público (${err.requestOptions.path}), ignorando...');
       handler.next(err);
       return;
     }
 
-    // 2. Bloqueia refresh em endpoints de autenticação
     if (err.requestOptions.path.contains('/login') ||
         err.requestOptions.path.contains('/refresh')) {
       handler.next(err);
       return;
     }
 
-    // 3. Se não for 401, passa adiante
     if (err.response?.statusCode != 401) {
       handler.next(err);
       return;
     }
 
-    // 4. Evita loop infinito
+    // ✅ Se o erro 401 veio do próprio logout, redireciona direto sem loop
+    if (err.requestOptions.path.contains('auth/logout')) {
+      _redirectToLogin(forceDirect: true);
+      handler.next(err);
+      return;
+    }
+
     final requestKey = '${err.requestOptions.path}:${err.requestOptions.method}';
     if (_refreshAttempts.contains(requestKey)) {
       _refreshAttempts.remove(requestKey);
@@ -101,14 +102,19 @@ class RefreshInterceptor extends QueuedInterceptor {
     }
   }
 
-  void _redirectToLogin() {
+  void _redirectToLogin({bool forceDirect = false}) {
+    if (_isRedirecting) return;
+    _isRedirecting = true;
+
     _tokenService.clearTokens();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navigator = _navigatorKey.currentState;
       if (navigator != null) {
         final context = _navigatorKey.currentContext;
-        if (context != null) {
+        
+        // Se não for forçado direto, tenta o fluxo normal de logout do Cubit
+        if (context != null && !forceDirect) {
           try {
             context.read<AuthCubit>().logout();
           } catch (_) {}
@@ -129,6 +135,7 @@ class RefreshInterceptor extends QueuedInterceptor {
           );
         }
       }
+      _isRedirecting = false;
     });
   }
 }
