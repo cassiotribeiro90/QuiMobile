@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/lojas_cubit.dart';
 import '../bloc/lojas_state.dart';
+import '../widgets/filter_bottom_sheet.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../../shared/widgets/qui_card.dart';
-import '../../../theme/app_theme.dart';
+import '../../../routes/app_routes.dart';
 
 class LojasListScreen extends StatefulWidget {
   const LojasListScreen({super.key});
@@ -46,23 +47,55 @@ class _LojasListScreenState extends State<LojasListScreen> {
     }
   }
 
-  Future<void> _onRefresh() async {
-    _searchController.clear();
-    await context.read<LojasCubit>().refreshList();
+  void _showFilter(LojasLoaded state) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FilterBottomSheet(
+        categorias: state.categorias.map((c) => CategoriaFilter(
+          label: c.label,
+          value: c.value,
+        )).toList(),
+        selectedCategoria: state.categoriaSelecionada,
+        onApply: (val) {
+          context.read<LojasCubit>().filterByCategoria(val);
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lojas'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(130), // Aumentado para caber chips
-          child: Column(
-            children: [
-              Padding(
+    return BlocBuilder<LojasCubit, LojasState>(
+      builder: (context, state) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Lojas'),
+            actions: [
+              if (state is LojasLoaded)
+                IconButton(
+                  icon: Stack(
+                    children: [
+                      const Icon(Icons.filter_list),
+                      if (state.categoriaSelecionada != null)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+                            constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
+                          ),
+                        ),
+                    ],
+                  ),
+                  onPressed: () => _showFilter(state),
+                ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(60),
+              child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: TextField(
                   controller: _searchController,
@@ -79,109 +112,60 @@ class _LojasListScreenState extends State<LojasListScreen> {
                   onChanged: (value) => context.read<LojasCubit>().searchLojas(value),
                 ),
               ),
-              const _CategoriesBar(), // ✅ Barra de Categorias integrada
-            ],
+            ),
           ),
-        ),
-      ),
-      body: BlocBuilder<LojasCubit, LojasState>(
-        builder: (context, state) {
-          if (state is LojasLoading) {
-            return _buildLoadingState();
-          }
-
-          if (state is LojasLoaded) {
-            final lojas = state.lojasFiltradas;
-
-            if (lojas.isEmpty) return _buildEmptyState(theme, state.lojas.isEmpty);
-
-            return RefreshIndicator(
-              onRefresh: _onRefresh,
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: lojas.length + (state.isLoadingMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == lojas.length) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  return _LojaCard(loja: lojas[index]);
-                },
-              ),
-            );
-          }
-
-          return const SizedBox();
-        },
-      ),
+          body: _buildBody(state),
+        );
+      },
     );
+  }
+
+  Widget _buildBody(LojasState state) {
+    if (state is LojasLoading) {
+      return _buildLoadingState();
+    }
+
+    if (state is LojasLoaded) {
+      final lojas = state.lojasFiltradas;
+      if (lojas.isEmpty) return _buildEmptyState(state.lojas.isEmpty);
+
+      return RefreshIndicator(
+        onRefresh: () => context.read<LojasCubit>().refreshList(),
+        child: ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(16),
+          itemCount: lojas.length + (state.isLoadingMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == lojas.length) {
+              return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
+            }
+            return _LojaCard(loja: lojas[index]);
+          },
+        ),
+      );
+    }
+    return const SizedBox();
   }
 
   Widget _buildLoadingState() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: 5,
-      itemBuilder: (_, __) => const Padding(
-        padding: EdgeInsets.only(bottom: 12),
-        child: LoadingSkeleton(height: 100),
-      ),
+      itemBuilder: (_, __) => const Padding(padding: EdgeInsets.only(bottom: 12), child: LoadingSkeleton(height: 100)),
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme, bool isOverallEmpty) {
+  Widget _buildEmptyState(bool isOverallEmpty) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.storefront_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text('Nenhuma loja encontrada', style: theme.textTheme.titleMedium),
+          const Text('Nenhuma loja encontrada', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           Text(isOverallEmpty ? 'Volte mais tarde!' : 'Tente outros filtros'),
         ],
       ),
-    );
-  }
-}
-
-class _CategoriesBar extends StatelessWidget {
-  const _CategoriesBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<LojasCubit, LojasState>(
-      builder: (context, state) {
-        if (state is! LojasLoaded) return const SizedBox(height: 50);
-
-        return SizedBox(
-          height: 50,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: state.categorias.length,
-            itemBuilder: (context, index) {
-              final cat = state.categorias[index];
-              final isSelected = state.categoriaSelecionada == cat.value;
-
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilterChip(
-                  label: Text('${cat.label} (${cat.count})'),
-                  selected: isSelected,
-                  onSelected: (_) => context.read<LojasCubit>().filterByCategoria(cat.value),
-                  selectedColor: AppTheme.primaryColor.withOpacity(0.2),
-                  checkmarkColor: AppTheme.primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
-              );
-            },
-          ),
-        );
-      },
     );
   }
 }
@@ -192,14 +176,13 @@ class _LojaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: QuiCard(
-        onTap: () => Navigator.pushNamed(context, '/loja-home', arguments: loja.id),
+        onTap: () => Navigator.pushNamed(context, Routes.lojaHome, arguments: loja.id),
         child: Row(
           children: [
-            _buildLogo(theme),
+            _buildLogo(),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -213,8 +196,13 @@ class _LojaCard extends StatelessWidget {
                     children: [
                       const Icon(Icons.star, size: 14, color: Colors.amber),
                       Text(' ${loja.notaMedia} ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      Text('• ${loja.tempoEntregaMin}-${loja.tempoEntregaMax} min • ${loja.taxaEntrega == 0 ? "Grátis" : "R\$ ${loja.taxaEntrega.toStringAsFixed(2)}"}',
-                           style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                      Expanded(
+                        child: Text(
+                          '• ${loja.tempoEntregaMin}-${loja.tempoEntregaMax} min • ${loja.taxaEntrega == 0 ? "Grátis" : "R\$ ${loja.taxaEntrega.toStringAsFixed(2)}"}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -226,7 +214,7 @@ class _LojaCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLogo(ThemeData theme) {
+  Widget _buildLogo() {
     return Container(
       width: 60, height: 60,
       decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
@@ -234,7 +222,7 @@ class _LojaCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: (loja.logo != null) 
           ? Image.network(loja.logo!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.store))
-          : Center(child: Text(loja.nome[0], style: TextStyle(fontWeight: FontWeight.bold, color: theme.primaryColor))),
+          : const Center(child: Icon(Icons.store, color: Colors.grey)),
       ),
     );
   }

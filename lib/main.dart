@@ -36,11 +36,10 @@ class QuiPedeApp extends StatelessWidget {
           return MaterialApp(
             title: 'QuiPede',
             debugShowCheckedModeBanner: false,
-            // ✅ Adicionando a NavigatorKey para o Interceptor funcionar corretamente
             navigatorKey: getIt<GlobalKey<NavigatorState>>(),
             theme: AppTheme.lightTheme,
             themeMode: themeState.themeMode,
-            initialRoute: Routes.SPLASH,
+            initialRoute: Routes.splash, // Atualizado para lowercase
             onGenerateRoute: AppRouter.onGenerateRoute,
             navigatorObservers: [AuthObserver()],
             builder: (context, child) {

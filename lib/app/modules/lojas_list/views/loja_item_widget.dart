@@ -14,7 +14,7 @@ class LojaItemWidget extends StatelessWidget {
       child: ListTile(
         onTap: () => Navigator.pushNamed(
           context, 
-          Routes.LOJA_HOME, 
+          Routes.lojaHome,
           arguments: loja.id
         ),
         leading: CircleAvatar(

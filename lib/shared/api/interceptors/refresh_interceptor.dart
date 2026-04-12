@@ -56,7 +56,7 @@ class RefreshInterceptor extends QueuedInterceptor {
 
     // ✅ Se o erro 401 veio do próprio logout, redireciona direto sem loop
     if (err.requestOptions.path.contains('auth/logout')) {
-      _redirectToLogin(forceDirect: true);
+      _redirectToHome(forceDirect: true);
       handler.next(err);
       return;
     }
@@ -64,7 +64,7 @@ class RefreshInterceptor extends QueuedInterceptor {
     final requestKey = '${err.requestOptions.path}:${err.requestOptions.method}';
     if (_refreshAttempts.contains(requestKey)) {
       _refreshAttempts.remove(requestKey);
-      _redirectToLogin();
+      _redirectToHome();
       handler.next(err);
       return;
     }
@@ -75,7 +75,7 @@ class RefreshInterceptor extends QueuedInterceptor {
       final hasRefreshToken = _tokenService.getRefreshToken() != null;
       if (!hasRefreshToken) {
         _refreshAttempts.remove(requestKey);
-        _redirectToLogin();
+        _redirectToHome();
         handler.next(err);
         return;
       }
@@ -92,17 +92,17 @@ class RefreshInterceptor extends QueuedInterceptor {
         handler.resolve(response);
       } else {
         _refreshAttempts.remove(requestKey);
-        _redirectToLogin();
+        _redirectToHome();
         handler.next(err);
       }
     } catch (e) {
       _refreshAttempts.remove(requestKey);
-      _redirectToLogin();
+      _redirectToHome();
       handler.next(err);
     }
   }
 
-  void _redirectToLogin({bool forceDirect = false}) {
+  void _redirectToHome({bool forceDirect = false}) {
     if (_isRedirecting) return;
     _isRedirecting = true;
 
@@ -121,7 +121,7 @@ class RefreshInterceptor extends QueuedInterceptor {
         }
 
         navigator.pushNamedAndRemoveUntil(
-          Routes.LOGIN,
+          Routes.home,
           (route) => false,
         );
 

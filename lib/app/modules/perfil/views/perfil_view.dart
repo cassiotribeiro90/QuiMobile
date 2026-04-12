@@ -14,12 +14,12 @@ class PerfilView extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.location_on_outlined),
             title: const Text('Meus Endereços'),
-            onTap: () => Navigator.pushNamed(context, Routes.ENDERECOS),
+            // onTap: () => Navigator.pushNamed(context, Routes.ENDERECOS),
           ),
           ListTile(
             leading: const Icon(Icons.receipt_long_outlined),
             title: const Text('Meus Pedidos'),
-            onTap: () => Navigator.pushNamed(context, Routes.PEDIDOS),
+            // onTap: () => Navigator.pushNamed(context, Routes.PEDIDOS),
           ),
           const Divider(),
           ListTile(

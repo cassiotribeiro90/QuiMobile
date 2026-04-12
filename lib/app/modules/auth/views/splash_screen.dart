@@ -35,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
         
         // ✅ SEMPRE navega para HOME. O acesso anônimo é permitido.
         debugPrint('Splash: Navegando para HOME');
-        Navigator.of(context).pushNamedAndRemoveUntil(Routes.HOME, (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
       },
       child: const Scaffold(
         backgroundColor: Color(0xFF3949AB),

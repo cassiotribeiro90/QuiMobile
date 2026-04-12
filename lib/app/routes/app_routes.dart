@@ -1,12 +1,9 @@
-abstract class Routes {
-  static const SPLASH = '/splash';
-  static const LOGIN = '/login';
-  static const HOME = '/home';
-  static const CRIAR_LOJA = '/criar-loja';
-  static const LOJA_AVALIACOES = '/loja-avaliacoes';
-  static const LOJA_HOME = '/loja-home';
-  static const PERFIL = '/perfil';
-  static const ENDERECOS = '/enderecos';
-  static const PEDIDOS = '/pedidos';
-  static const CARRINHO = '/carrinho';
+class Routes {
+  static const String splash = '/';
+  static const String login = '/login';
+  static const String home = '/home';
+  static const String lojaHome = '/loja-home'; // O id será passado via arguments
+  static const String carrinho = '/carrinho';
+  static const String pedidos = '/pedidos';
+  static const String perfil = '/perfil';
 }

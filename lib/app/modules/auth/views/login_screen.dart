@@ -54,12 +54,12 @@ class _LoginScreenState extends State<LoginScreen> {
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            // ✅ Se veio de um redirecionamento (tem telas anteriores), volta até a home
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              Routes.HOME,
-                  (route) => route.isFirst,
-            );
+            print('✅ Login bem-sucedido');
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, Routes.home);
+            }
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -133,7 +133,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      // TODO: Implementar recuperação de senha
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Funcionalidade em desenvolvimento'),
@@ -183,7 +182,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Text('Não tem uma conta?'),
                       TextButton(
                         onPressed: () {
-                          // TODO: Navegar para tela de cadastro
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Cadastro em desenvolvimento'),

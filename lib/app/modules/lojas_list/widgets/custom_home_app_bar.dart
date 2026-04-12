@@ -31,12 +31,12 @@ class CustomHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         IconButton(
           icon: Icon(Icons.receipt_long_outlined, color: Colors.grey[700]),
-          onPressed: () => Navigator.pushNamed(context, Routes.PEDIDOS),
+          onPressed: () => Navigator.pushNamed(context, Routes.pedidos),
           tooltip: 'Meus Pedidos',
         ),
         IconButton(
           icon: Icon(Icons.person_outline, color: Colors.grey[700]),
-          onPressed: () => Navigator.pushNamed(context, Routes.PERFIL),
+          onPressed: () => Navigator.pushNamed(context, Routes.perfil),
           tooltip: 'Perfil',
         ),
       ],
@@ -52,7 +52,7 @@ class CustomHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         }
 
         return GestureDetector(
-          onTap: () => Navigator.pushNamed(context, Routes.ENDERECOS),
+          // onTap: () => Navigator.pushNamed(context, Routes.ENDERECOS),
           behavior: HitTestBehavior.opaque,
           child: Container(
             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.4),

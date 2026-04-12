@@ -14,7 +14,7 @@ import '../../carrinho/widgets/carrinho_bottom_bar.dart';
 import '../../produtos/widgets/produto_simples_bottom_sheet.dart';
 import '../../auth/bloc/auth_cubit.dart';
 import '../../auth/bloc/auth_state.dart';
-import '../../auth/views/login_screen.dart';
+import '../../../routes/app_routes.dart';
 
 class LojaDetalhePage extends StatefulWidget {
   final int lojaId;
@@ -30,6 +30,7 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
   final ScrollController _scrollController = ScrollController();
 
   dynamic _produtoPendente;
+  int? _lojaIdPendente;
   bool _isLoadingMore = false;
 
   @override
@@ -40,7 +41,6 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _cubit.loadLoja();
-        // ✅ Força recarregar carrinho ao entrar na loja
         getIt<CarrinhoCubit>().carregarCarrinho(forceRefresh: true);
       }
     });
@@ -77,10 +77,45 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
 
     if (authState is! AuthAuthenticated) {
       _produtoPendente = produto;
-      _mostrarSnackBarERedirecionar();
+      _lojaIdPendente = widget.lojaId;
+      
+      print('🔍 Produto salvo: ${produto?.nome}');
+      print('🔍 Loja salva: $_lojaIdPendente');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Faça login para ver os detalhes do produto'),
+          backgroundColor: Colors.orange.shade700,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      Navigator.pushNamed(context, Routes.login).then((_) {
+        print('🔙 Voltou do login');
+        if (mounted && _produtoPendente != null) {
+          final authCubit = getIt<AuthCubit>();
+          if (authCubit.state is AuthAuthenticated) {
+            print('✅ Autenticado, abrindo produto');
+            _abrirBottomSheetProduto(_produtoPendente!, _lojaIdPendente!);
+            _produtoPendente = null;
+            _lojaIdPendente = null;
+          }
+        }
+      });
       return;
     }
 
+    _abrirBottomSheetProduto(produto, widget.lojaId);
+  }
+
+  void _abrirBottomSheetProduto(dynamic produto, int lojaId) {
+    if (produto == null) {
+      print('❌ ERRO: Produto é null ao tentar abrir bottom sheet');
+      return;
+    }
+    
+    print('✅ Abrindo bottom sheet para: ${produto.nome}');
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -89,50 +124,10 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
         value: getIt<CarrinhoCubit>(),
         child: ProdutoSimplesBottomSheet(
           produto: produto,
-          lojaId: widget.lojaId,
+          lojaId: lojaId,
         ),
       ),
     );
-  }
-
-  void _mostrarSnackBarERedirecionar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Faça login para ver os detalhes do produto'),
-        backgroundColor: Colors.orange.shade700,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        ).then((_) {
-          final authCubit = getIt<AuthCubit>();
-          if (authCubit.state is AuthAuthenticated && _produtoPendente != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => BlocProvider.value(
-                    value: getIt<CarrinhoCubit>(),
-                    child: ProdutoSimplesBottomSheet(
-                      produto: _produtoPendente!,
-                      lojaId: widget.lojaId,
-                    ),
-                  ),
-                );
-                _produtoPendente = null;
-              }
-            });
-          }
-        });
-      }
-    });
   }
 
   @override
@@ -189,8 +184,8 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
         if (totalItens > 0 && lojaNome != null) {
           return CarrinhoBottomBar(
             lojaNome: lojaNome,
-            isLoading: isLoading, // ✅ Passa loading para o shimmer
-            onTap: () => Navigator.pushNamed(context, '/carrinho'),
+            isLoading: isLoading,
+            onTap: () => Navigator.pushNamed(context, Routes.carrinho),
           );
         }
         return const SizedBox.shrink();
@@ -253,7 +248,6 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
               ),
             ),
 
-          // ✅ BlocSelector para extrair apenas o que SecoesListWidget precisa do carrinho
           BlocSelector<CarrinhoCubit, CarrinhoState, Map<String, Map<int, int>>>(
             selector: (carrinhoState) {
               final quantidades = <int, int>{};

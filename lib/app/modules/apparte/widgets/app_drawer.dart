@@ -1,135 +1,160 @@
+// lib/widgets/app_drawer.dart
+
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme_extension.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../routes/app_routes.dart';
+import '../../auth/bloc/auth_cubit.dart';
+import '../../auth/bloc/auth_state.dart';
 
 class AppDrawer extends StatelessWidget {
-  final int selectedIndex;
-  final Function(int) onItemSelected;
-  
-  const AppDrawer({
-    super.key,
-    required this.selectedIndex,
-    required this.onItemSelected,
-  });
-  
+  const AppDrawer({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final colors = context;
-    
-    return Drawer(
-      backgroundColor: colors.backgroundColor,
-      child: Column(
-        children: [
-          // Header do Drawer com gradiente
-          Container(
-            height: 140,
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: AppColors.drawerHeaderGradient,
-            ),
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.restaurant_menu,
-                    size: 40,
-                    color: Colors.white,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'QuiPede',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, authState) {
+        final isLogged = authState is AuthAuthenticated;
+
+        return Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              _buildHeader(context, isLogged),
+              const Divider(),
+
+              // Lojas (sempre visível)
+              _buildMenuItem(
+                icon: Icons.storefront,
+                label: 'Lojas',
+                onTap: () => _navigateAndClose(context, Routes.home),
               ),
-            ),
-          ),
-          
-          // Itens do menu
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _buildDrawerItem(
-                  context,
-                  index: 0,
-                  icon: Icons.storefront_outlined,
-                  selectedIcon: Icons.storefront,
-                  label: 'Lojas',
-                ),
-                _buildDrawerItem(
-                  context,
-                  index: 1,
-                  icon: Icons.shopping_bag_outlined,
-                  selectedIcon: Icons.shopping_bag,
+
+              // Carrinho (sempre visível)
+              _buildMenuItem(
+                icon: Icons.shopping_cart,
+                label: 'Carrinho',
+                onTap: () => _navigateAndClose(context, Routes.carrinho),
+              ),
+
+              const Divider(),
+
+              // ===== SE LOGADO =====
+              if (isLogged) ...[
+                _buildMenuItem(
+                  icon: Icons.shopping_bag,
                   label: 'Meus Pedidos',
+                  onTap: () => _navigateAndClose(context, Routes.pedidos),
                 ),
-                _buildDrawerItem(
-                  context,
-                  index: 2,
-                  icon: Icons.person_outline,
-                  selectedIcon: Icons.person,
+                _buildMenuItem(
+                  icon: Icons.person,
                   label: 'Meu Perfil',
+                  onTap: () => _navigateAndClose(context, Routes.perfil),
                 ),
-                const Divider(),
-                _buildDrawerItem(
-                  context,
-                  index: 3,
-                  icon: Icons.settings_outlined,
-                  selectedIcon: Icons.settings,
-                  label: 'Configurações',
+                _buildMenuItem(
+                  icon: Icons.logout,
+                  label: 'Sair',
+                  isLogout: true,
+                  onTap: () => _confirmarLogout(context),
                 ),
               ],
+
+              // ===== SE DESLOGADO =====
+              if (!isLogged) ...[
+                _buildMenuItem(
+                  icon: Icons.login,
+                  label: 'Entrar',
+                  isLogin: true,
+                  onTap: () => _navigateAndClose(context, Routes.login),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isLogged) {
+    return DrawerHeader(
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const Text(
+            'QuiPede',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          
-          // Versão do app no rodapé
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Versão 1.0.0',
-              style: context.caption.copyWith(color: colors.textHint),
-            ),
+          const SizedBox(height: 8),
+          Text(
+            isLogged ? 'Bem-vindo de volta!' : 'Faça login para mais recursos',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
     );
   }
-  
-  Widget _buildDrawerItem(
-    BuildContext context, {
-    required int index,
+
+  Widget _buildMenuItem({
     required IconData icon,
-    required IconData selectedIcon,
     required String label,
+    required VoidCallback onTap,
+    bool isLogout = false,
+    bool isLogin = false,
   }) {
-    final colors = context;
-    final isSelected = selectedIndex == index;
-    
     return ListTile(
       leading: Icon(
-        isSelected ? selectedIcon : icon,
-        color: isSelected ? colors.primaryColor : colors.textSecondary,
-        size: 24,
+        icon,
+        color: isLogout ? Colors.red : (isLogin ? Colors.green : null),
       ),
       title: Text(
         label,
-        style: context.bodyMedium.copyWith(
-          color: isSelected ? colors.primaryColor : colors.textPrimary,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        style: TextStyle(
+          color: isLogout ? Colors.red : (isLogin ? Colors.green : null),
         ),
       ),
-      selected: isSelected,
-      selectedTileColor: colors.primarySurface,
-      onTap: () {
-        onItemSelected(index);
-        Navigator.pop(context); // Fecha o drawer
-      },
+      onTap: onTap,
     );
+  }
+
+  void _navigateAndClose(BuildContext context, String route) {
+    Navigator.pop(context); // Fecha o drawer
+    Navigator.pushReplacementNamed(context, route);
+  }
+
+  void _confirmarLogout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Sair'),
+        content: const Text('Tem certeza que deseja sair?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(_, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(_, true),
+            child: const Text('Sair', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      Navigator.pop(context); // Fecha o drawer
+      await context.read<AuthCubit>().logout();
+      if (context.mounted) {
+        // ✅ Após logout, vai para a home
+        Navigator.pushReplacementNamed(context, Routes.home);
+      }
+    }
   }
 }
