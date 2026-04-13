@@ -8,6 +8,7 @@ import '../modules/lojas_list/repository/loja_repository.dart';
 import '../modules/lojas_list/repository/loja_repository_impl.dart';
 import '../modules/home/bloc/address_cubit.dart';
 import '../modules/home/bloc/home_cubit.dart';
+import '../modules/home/bloc/localizacao_cubit.dart';
 import '../modules/lojas_list/bloc/lojas_cubit.dart';
 import '../modules/auth/bloc/auth_cubit.dart';
 import '../theme/theme_cubit.dart';
@@ -58,6 +59,7 @@ Future<void> setupDependencies() async {
   getIt.registerFactory(() => AddressCubit());
   getIt.registerFactory(() => HomeCubit());
   getIt.registerFactory(() => LojasCubit(getIt<LojaRepository>()));
+  getIt.registerSingleton<LocalizacaoCubit>(LocalizacaoCubit(getIt<SharedPreferences>()));
 
   getIt.registerFactoryParam<LojaHomeCubit, int, void>(
         (lojaId, _) => LojaHomeCubit(getIt<LojaHomeRepository>(), lojaId),
