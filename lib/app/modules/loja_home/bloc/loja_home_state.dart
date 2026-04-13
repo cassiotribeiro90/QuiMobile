@@ -7,14 +7,32 @@ import '../../../models/filter_options_model.dart';
 abstract class LojaHomeState extends Equatable {
   final List<SecaoModel> secoes;
   final LojaDetalheModel? loja;
-  
+  final bool isAddingToCart;
+  final int? addingProductId;
+  final String? searchQuery;
+  final String? orderBy;
+  final int? selectedCategoriaId;
+
   const LojaHomeState({
     this.secoes = const [],
     this.loja,
+    this.isAddingToCart = false,
+    this.addingProductId,
+    this.searchQuery,
+    this.orderBy,
+    this.selectedCategoriaId,
   });
 
   @override
-  List<Object?> get props => [secoes, loja];
+  List<Object?> get props => [
+    secoes,
+    loja,
+    isAddingToCart,
+    addingProductId,
+    searchQuery,
+    orderBy,
+    selectedCategoriaId
+  ];
 }
 
 class LojaHomeInitial extends LojaHomeState {
@@ -22,7 +40,15 @@ class LojaHomeInitial extends LojaHomeState {
 }
 
 class LojaHomeLoading extends LojaHomeState {
-  const LojaHomeLoading({super.secoes, super.loja});
+  const LojaHomeLoading({
+    super.secoes,
+    super.loja,
+    super.isAddingToCart,
+    super.addingProductId,
+    super.searchQuery,
+    super.orderBy,
+    super.selectedCategoriaId,
+  });
 }
 
 class LojaHomeLoaded extends LojaHomeState {
@@ -33,9 +59,6 @@ class LojaHomeLoaded extends LojaHomeState {
   final bool hasMore;
   final bool isLoadingMore;
   final bool isFiltering;
-  final int? selectedCategoriaId;
-  final String? searchQuery;
-  final String? orderBy;
   final List<int> selectedCategories;
   final int currentPage;
   final int totalPages;
@@ -49,13 +72,15 @@ class LojaHomeLoaded extends LojaHomeState {
     this.hasMore = false,
     this.isLoadingMore = false,
     this.isFiltering = false,
-    this.selectedCategoriaId,
-    this.searchQuery,
-    this.orderBy,
+    super.searchQuery,
+    super.orderBy,
+    super.selectedCategoriaId,
     this.selectedCategories = const [],
     required this.currentPage,
     required this.totalPages,
     required this.activeFilterCount,
+    super.isAddingToCart,
+    super.addingProductId,
   }) : super(loja: loja);
 
   LojaHomeLoaded copyWith({
@@ -73,6 +98,8 @@ class LojaHomeLoaded extends LojaHomeState {
     int? currentPage,
     int? totalPages,
     int? activeFilterCount,
+    bool? isAddingToCart,
+    int? addingProductId,
   }) {
     return LojaHomeLoaded(
       loja: loja ?? this.loja,
@@ -89,6 +116,8 @@ class LojaHomeLoaded extends LojaHomeState {
       currentPage: currentPage ?? this.currentPage,
       totalPages: totalPages ?? this.totalPages,
       activeFilterCount: activeFilterCount ?? this.activeFilterCount,
+      isAddingToCart: isAddingToCart ?? this.isAddingToCart,
+      addingProductId: addingProductId ?? this.addingProductId,
     );
   }
 
@@ -108,16 +137,34 @@ class LojaHomeLoaded extends LojaHomeState {
         currentPage,
         totalPages,
         activeFilterCount,
+        isAddingToCart,
+        addingProductId,
       ];
 }
 
 class LojaHomeError extends LojaHomeState {
   final String message;
-  const LojaHomeError(this.message, {super.secoes, super.loja});
+  const LojaHomeError(this.message, {
+    super.secoes,
+    super.loja,
+    super.isAddingToCart,
+    super.addingProductId,
+    super.searchQuery,
+    super.orderBy,
+    super.selectedCategoriaId,
+  });
   @override
-  List<Object?> get props => [message, secoes, loja];
+  List<Object?> get props => [message, secoes, loja, isAddingToCart, addingProductId, searchQuery, orderBy, selectedCategoriaId];
 }
 
 class LojaHomeLoadingMore extends LojaHomeState {
-  const LojaHomeLoadingMore({super.secoes, super.loja});
+  const LojaHomeLoadingMore({
+    super.secoes,
+    super.loja,
+    super.isAddingToCart,
+    super.addingProductId,
+    super.searchQuery,
+    super.orderBy,
+    super.selectedCategoriaId,
+  });
 }

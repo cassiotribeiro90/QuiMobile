@@ -89,7 +89,7 @@ class CarrinhoPage extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final item = state.itens[index];
-                      final isUpdating = state.isUpdating && state.updatingItemId == item.id;
+                      final isThisItemRequesting = state.isRequesting && state.requestingItemId == item.id;
                       
                       return Container(
                         padding: const EdgeInsets.all(12),
@@ -151,7 +151,7 @@ class CarrinhoPage extends StatelessWidget {
                                       QuantitySelector(
                                         quantity: item.quantidade,
                                         itemName: item.nome,
-                                        isLoading: isUpdating,
+                                        isRequesting: isThisItemRequesting,
                                         onChanged: (novaQtd) {
                                           context.read<CarrinhoCubit>().atualizarQuantidade(item.id, novaQtd);
                                         },
@@ -210,7 +210,7 @@ class CarrinhoPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: state.isUpdating ? null : () {
+              onPressed: state.isRequesting ? null : () {
                 // TODO: Navegar para checkout
               },
               style: ElevatedButton.styleFrom(
@@ -221,7 +221,7 @@ class CarrinhoPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: state.isUpdating 
+              child: state.isRequesting
                 ? const SizedBox(
                     height: 20, 
                     width: 20, 

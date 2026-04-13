@@ -177,7 +177,7 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
   Widget? _buildBottomBar(LojaHomeState state) {
     return BlocBuilder<CarrinhoCubit, CarrinhoState>(
       builder: (context, carrinhoState) {
-        final isLoading = carrinhoState is CarrinhoLoaded && carrinhoState.isUpdating;
+        final isLoading = carrinhoState is CarrinhoLoaded && carrinhoState.isRequesting;
         final totalItens = carrinhoState is CarrinhoLoaded ? carrinhoState.totalItens : 0;
         final lojaNome = carrinhoState is CarrinhoLoaded ? carrinhoState.lojaNome : null;
         

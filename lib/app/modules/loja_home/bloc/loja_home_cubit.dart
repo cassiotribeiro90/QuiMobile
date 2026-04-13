@@ -5,6 +5,7 @@ import '../repository/loja_repository.dart';
 import 'loja_home_state.dart';
 import '../../../models/secao_model.dart';
 import '../../../models/produto_model.dart';
+import '../../carrinho/bloc/carrinho_cubit.dart';
 
 class LojaHomeCubit extends Cubit<LojaHomeState> {
   final LojaHomeRepository _repository;
@@ -16,12 +17,10 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
   int? _categoriaId;
   String? _orderBy;
 
-  // Controle de requisições simultâneas
   bool _isLoading = false;
 
   LojaHomeCubit(this._repository, this.lojaId) : super(LojaHomeInitial());
 
-  /// Carrega dados iniciais da loja
   Future<void> loadLoja() async {
     if (_isLoading) return;
 
@@ -41,8 +40,6 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
       );
 
       _hasMore = response.pagination.page < response.pagination.totalPages;
-
-      // ✅ Usa os IDs originais da API para remover duplicatas
       final secoesLimpa = _removerDuplicatas(response.secoes);
 
       emit(LojaHomeLoaded(
@@ -65,7 +62,6 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
     }
   }
 
-  /// Carrega mais produtos (paginacao)
   Future<void> loadMore() async {
     final currentState = state;
     if (_isLoading) return;
@@ -88,8 +84,6 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
       );
 
       _hasMore = response.pagination.page < response.pagination.totalPages;
-
-      // ✅ Mescla seções usando IDs originais
       final novasSecoes = _mesclarSecoes(currentState.secoes, response.secoes);
 
       emit(currentState.copyWith(
@@ -104,6 +98,44 @@ class LojaHomeCubit extends Cubit<LojaHomeState> {
       emit(LojaHomeError('Erro ao carregar mais itens: $e'));
     } finally {
       _isLoading = false;
+    }
+  }
+
+  Future<void> adicionarAoCarrinho({
+    required CarrinhoCubit carrinhoCubit,
+    required int produtoId,
+    int quantidade = 1,
+    List<int> opcoes = const [],
+    String? observacao,
+  }) async {
+    final currentState = state;
+    if (state.isAddingToCart) return;
+
+    if (currentState is LojaHomeLoaded) {
+      emit(currentState.copyWith(
+        isAddingToCart: true,
+        addingProductId: produtoId,
+      ));
+    }
+
+    try {
+      await carrinhoCubit.adicionarItem(
+        produtoId: produtoId,
+        quantidade: quantidade,
+        opcoes: opcoes,
+        observacao: observacao,
+        applyDebounce: false, // ✅ Sem debounce para adição direta
+      );
+    } catch (e) {
+      emit(LojaHomeError('Erro ao adicionar ao carrinho: $e', secoes: state.secoes, loja: state.loja));
+    } finally {
+      final finalState = state;
+      if (finalState is LojaHomeLoaded) {
+        emit(finalState.copyWith(
+          isAddingToCart: false,
+          addingProductId: null,
+        ));
+      }
     }
   }
 

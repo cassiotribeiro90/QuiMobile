@@ -21,23 +21,41 @@ class CarrinhoLoaded extends CarrinhoState {
   final int totalItens;
   final double subtotal;
   final String? lojaNome;
-  final bool isUpdating;
-  final int? updatingItemId;
+  final bool isRequesting;
+  final int? requestingItemId;
 
   const CarrinhoLoaded({
     required this.itens,
     required this.totalItens,
     required this.subtotal,
     this.lojaNome,
-    this.isUpdating = false,
-    this.updatingItemId,
+    this.isRequesting = false,
+    this.requestingItemId,
   });
 
   @override
   List<Object?> get props => [
     itens, totalItens, subtotal, lojaNome, 
-    isUpdating, updatingItemId
+    isRequesting, requestingItemId
   ];
+
+  CarrinhoLoaded copyWith({
+    List<CarrinhoItem>? itens,
+    int? totalItens,
+    double? subtotal,
+    String? lojaNome,
+    bool? isRequesting,
+    int? requestingItemId,
+  }) {
+    return CarrinhoLoaded(
+      itens: itens ?? this.itens,
+      totalItens: totalItens ?? this.totalItens,
+      subtotal: subtotal ?? this.subtotal,
+      lojaNome: lojaNome ?? this.lojaNome,
+      isRequesting: isRequesting ?? this.isRequesting,
+      requestingItemId: requestingItemId ?? this.requestingItemId,
+    );
+  }
 }
 
 class CarrinhoError extends CarrinhoState {
@@ -88,7 +106,6 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
   Map<int, CarrinhoItem> _itensMap = {};
   bool _isFetching = false;
   bool _isAdding = false;
-  bool _isUpdating = false;
 
   Timer? _addDebounce;
   Timer? _updateDebounce;
@@ -127,7 +144,13 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     if (_authCubit.state is! AuthAuthenticated) return;
 
     _isFetching = true;
-    if (state is! CarrinhoLoaded || forceRefresh) emit(CarrinhoLoading());
+    
+    // ✅ CORREÇÃO PARA PARAR DE PISCAR:
+    // Só emite CarrinhoLoading se não houver dados carregados.
+    // Nunca emite CarrinhoLoading em forceRefresh se já tivermos CarrinhoLoaded.
+    if (state is! CarrinhoLoaded) {
+      emit(CarrinhoLoading());
+    }
 
     try {
       final response = await _service.carregarCarrinho();
@@ -136,16 +159,30 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
       _pendingAdd = null;
       
       emit(CarrinhoLoaded(
-        itens: response.itens,
+        itens: _getSortedItens(),
         totalItens: response.resumo.totalItens,
         subtotal: response.resumo.subtotal,
         lojaNome: response.resumo.lojaNome,
+        isRequesting: false,
+        requestingItemId: null,
       ));
     } catch (e) {
-      _limparEstado();
+      if (state is! CarrinhoLoaded) {
+        _limparEstado();
+      } else {
+        // Se já estava carregado, reseta os loaders
+        _emitirEstadoAtualizado();
+      }
     } finally {
       _isFetching = false;
     }
+  }
+
+  List<CarrinhoItem> _getSortedItens() {
+    final list = _itensMap.values.toList();
+    // ✅ Mantém a ordem estável para evitar que os itens pulem de lugar na lista
+    list.sort((a, b) => a.id.compareTo(b.id));
+    return list;
   }
 
   Future<void> adicionarItem({
@@ -159,7 +196,7 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     if (_isAdding) return;
 
     _isAdding = true;
-    emit(CarrinhoLoading());
+    if (state is! CarrinhoLoaded) emit(CarrinhoLoading());
 
     _pendingAdd = _PendingAdd(
       produtoId: produtoId,
@@ -194,7 +231,7 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     if (result.success && result.data != null) {
       _itensMap = {for (var item in result.data!.itens) item.id: item};
       emit(CarrinhoLoaded(
-        itens: result.data!.itens,
+        itens: _getSortedItens(),
         totalItens: result.data!.resumo.totalItens,
         subtotal: result.data!.resumo.subtotal,
         lojaNome: result.data!.resumo.lojaNome,
@@ -212,51 +249,62 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     }
   }
 
-  Future<void> atualizarQuantidade(int itemId, int quantidade) async {
-    // ✅ Permite atualizar se não houver adição em curso
-    if (_isAdding) return;
+  void atualizarQuantidade(int itemId, int novaQuantidade) {
+    final currentState = state;
+    if (currentState is! CarrinhoLoaded) return;
 
-    // ✅ Atualização local (Otimista)
-    if (quantidade == 0) {
+    // Atualização local (Otimista)
+    if (novaQuantidade == 0) {
       _itensMap.remove(itemId);
     } else if (_itensMap.containsKey(itemId)) {
       final item = _itensMap[itemId]!;
       _itensMap[itemId] = item.copyWith(
-        quantidade: quantidade,
-        precoTotal: item.precoUnitario * quantidade
+        quantidade: novaQuantidade,
+        precoTotal: item.precoUnitario * novaQuantidade
       );
     }
     
-    _emitirEstadoAtualizado(isUpdating: true, updatingItemId: itemId);
+    _emitirEstadoAtualizado();
     
-    // ✅ Debounce de 1500ms conforme solicitado
-    _pendingUpdates[itemId] = quantidade;
+    // ✅ Debounce de 1500ms
+    _pendingUpdates[itemId] = novaQuantidade;
     _updateDebounce?.cancel();
     _updateDebounce = Timer(const Duration(milliseconds: 1500), () => _executarAtualizacoes());
   }
 
   Future<void> _executarAtualizacoes() async {
     if (_pendingUpdates.isEmpty) return;
-    _isUpdating = true;
+    
     final updates = Map<int, int>.from(_pendingUpdates);
     _pendingUpdates.clear();
 
+    for (var entry in updates.entries) {
+      await _enviarAtualizacaoParaAPI(entry.key, entry.value);
+    }
+    
+    // Recarregar silenciosamente do servidor para consistência final
+    await carregarCarrinho(forceRefresh: true);
+  }
+
+  Future<void> _enviarAtualizacaoParaAPI(int itemId, int quantidade) async {
+    final currentState = state;
+    if (currentState is! CarrinhoLoaded) return;
+
+    // Ativa semáforo local (loader no item)
+    emit(currentState.copyWith(
+      isRequesting: true,
+      requestingItemId: itemId,
+    ));
+
     try {
-      for (var entry in updates.entries) {
-        await _service.atualizarItem(itemId: entry.key, quantidade: entry.value);
-      }
-      final response = await _service.carregarCarrinho();
-      _itensMap = {for (var item in response.itens) item.id: item};
+      await _service.atualizarItem(itemId: itemId, quantidade: quantidade);
     } catch (e) {
-      await carregarCarrinho();
-    } finally {
-      _isUpdating = false;
-      _emitirEstadoAtualizado();
+      // carregarCarrinho resolverá
     }
   }
 
-  void _emitirEstadoAtualizado({bool isUpdating = false, int? updatingItemId}) {
-    final itens = _itensMap.values.toList();
+  void _emitirEstadoAtualizado({bool isRequesting = false, int? requestingItemId}) {
+    final itens = _getSortedItens();
     final totalItens = itens.fold<int>(0, (sum, item) => sum + item.quantidade);
     final subtotal = itens.fold<double>(0, (sum, item) => sum + item.precoTotal);
     String? lojaNome = state is CarrinhoLoaded ? (state as CarrinhoLoaded).lojaNome : null;
@@ -266,8 +314,8 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
       totalItens: totalItens,
       subtotal: subtotal,
       lojaNome: lojaNome,
-      isUpdating: isUpdating,
-      updatingItemId: updatingItemId,
+      isRequesting: isRequesting,
+      requestingItemId: requestingItemId,
     ));
   }
 
@@ -283,7 +331,7 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
   }
 
   Future<void> removerItem(int itemId) async {
-    await atualizarQuantidade(itemId, 0);
+    atualizarQuantidade(itemId, 0);
   }
 
   Future<void> limparEAdicionar({
@@ -308,7 +356,7 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
       if (result.success && result.data != null) {
         _itensMap = {for (var item in result.data!.itens) item.id: item};
         emit(CarrinhoLoaded(
-          itens: result.data!.itens,
+          itens: _getSortedItens(),
           totalItens: result.data!.resumo.totalItens,
           subtotal: result.data!.resumo.subtotal,
           lojaNome: result.data!.resumo.lojaNome,

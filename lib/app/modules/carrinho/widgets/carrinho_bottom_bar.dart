@@ -44,7 +44,8 @@ class CarrinhoBottomBar extends StatelessWidget {
           Navigator.pushNamed(context, Routes.carrinho);
         };
         
-        final bool isBarLoading = isLoading || (state is CarrinhoLoaded && state.isUpdating);
+        // Corrigido: usando isRequesting em vez de isUpdating
+        final bool isBarLoading = isLoading || (state is CarrinhoLoaded && state.isRequesting);
         
         return Container(
           decoration: BoxDecoration(

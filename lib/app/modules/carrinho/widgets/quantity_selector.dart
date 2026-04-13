@@ -4,9 +4,10 @@ import '../../../core/theme/app_theme_extension.dart';
 class QuantitySelector extends StatelessWidget {
   final int quantity;
   final ValueChanged<int> onChanged;
-  final String? itemName; // ✅ Nome do item para o diálogo
+  final String? itemName;
   final int max;
-  final bool isLoading; // ✅ Recebe se está carregando
+  final bool isLoading; 
+  final bool isRequesting; // ✅ Novo parâmetro para o semáforo real
 
   const QuantitySelector({
     super.key,
@@ -15,16 +16,20 @@ class QuantitySelector extends StatelessWidget {
     this.itemName,
     this.max = 99,
     this.isLoading = false,
+    this.isRequesting = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Bloqueia apenas se estiver em REQUISIÇÃO real (isRequesting)
+    final bool bloqueado = isRequesting;
+
     return Container(
       decoration: BoxDecoration(
         color: context.surfaceColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isLoading ? context.borderColor.withOpacity(0.5) : context.borderColor,
+          color: bloqueado ? context.borderColor.withOpacity(0.5) : context.borderColor,
         ),
       ),
       child: Row(
@@ -35,18 +40,17 @@ class QuantitySelector extends StatelessWidget {
             icon: Icons.remove,
             onTap: () {
               if (quantity == 1) {
-                // ✅ Quando quantidade é 1 e vai para 0, mostra diálogo
                 _showRemoveDialog(context);
               } else if (quantity > 1) {
                 onChanged(quantity - 1);
               }
             },
-            enabled: !isLoading && quantity >= 1,
+            enabled: !bloqueado && quantity >= 1,
           ),
           Container(
             width: 40,
             alignment: Alignment.center,
-            child: isLoading
+            child: bloqueado
                 ? const SizedBox(
                     width: 16,
                     height: 16,
@@ -67,7 +71,7 @@ class QuantitySelector extends StatelessWidget {
                 onChanged(quantity + 1);
               }
             },
-            enabled: !isLoading && quantity < max,
+            enabled: !bloqueado && quantity < max,
           ),
         ],
       ),
@@ -92,7 +96,7 @@ class QuantitySelector extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              onChanged(0); // ✅ Confirma remoção
+              onChanged(0);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
