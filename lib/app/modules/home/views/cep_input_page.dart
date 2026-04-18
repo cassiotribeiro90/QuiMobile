@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quipede/shared/api/api_client.dart';
 import 'package:quipede/app/di/dependencies.dart';
 import 'package:quipede/app/core/utils/masks.dart';
-import 'package:quipede/app/routes/app_routes.dart';
-import 'package:quipede/app/modules/home/bloc/localizacao_cubit.dart';
-import 'package:quipede/app/modules/home/services/localizacao_service.dart';
+import '../services/localizacao_service.dart';
+import 'endereco_confirmacao_page.dart';
 import 'widgets/endereco_card.dart';
 
 class CepInputPage extends StatefulWidget {
@@ -18,8 +16,6 @@ class CepInputPage extends StatefulWidget {
 
 class _CepInputPageState extends State<CepInputPage> {
   final _cepController = TextEditingController();
-  final _numeroController = TextEditingController();
-  final _complementoController = TextEditingController();
   final _localizacaoService = LocalizacaoService(getIt<ApiClient>());
   
   Map<String, dynamic>? _enderecoEncontrado;
@@ -28,8 +24,6 @@ class _CepInputPageState extends State<CepInputPage> {
   @override
   void dispose() {
     _cepController.dispose();
-    _numeroController.dispose();
-    _complementoController.dispose();
     super.dispose();
   }
 
@@ -54,20 +48,20 @@ class _CepInputPageState extends State<CepInputPage> {
     }
   }
 
-  void _confirmarEndereco() {
+  void _irParaConfirmacao() {
     if (_enderecoEncontrado == null) return;
-    if (_numeroController.text.isEmpty) {
-      _showError('Informe o número.');
-      return;
-    }
-
-    context.read<LocalizacaoCubit>().definirLocalizacaoManual(
-      latitude: (_enderecoEncontrado!['latitude'] as num).toDouble(),
-      longitude: (_enderecoEncontrado!['longitude'] as num).toDouble(),
-      enderecoFormatado: '${_enderecoEncontrado!['logradouro']}, ${_numeroController.text}',
-    );
     
-    Navigator.pushReplacementNamed(context, Routes.home);
+    // ✅ Não persiste nada aqui, apenas navega para a tela de confirmação
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EnderecoConfirmacaoPage(
+          endereco: _enderecoEncontrado!,
+          latitude: (_enderecoEncontrado!['latitude'] as num?)?.toDouble() ?? 0.0,
+          longitude: (_enderecoEncontrado!['longitude'] as num?)?.toDouble() ?? 0.0,
+        ),
+      ),
+    );
   }
 
   void _showError(String message) {
@@ -113,32 +107,11 @@ class _CepInputPageState extends State<CepInputPage> {
                 uf: _enderecoEncontrado!['uf'] ?? '',
                 cep: _enderecoEncontrado!['cep'] ?? '',
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextField(
-                      controller: _numeroController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Número', border: OutlineInputBorder()),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 3,
-                    child: TextField(
-                      controller: _complementoController,
-                      decoration: const InputDecoration(labelText: 'Complemento', border: OutlineInputBorder()),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _confirmarEndereco,
+                onPressed: _irParaConfirmacao,
                 style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('CONFIRMAR ENDEREÇO'),
+                child: const Text('CONFIRMAR'),
               ),
             ],
           ],

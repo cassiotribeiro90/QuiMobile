@@ -58,8 +58,14 @@ Future<void> setupDependencies() async {
   // ✅ 9. Cubits que dependem do AuthCubit (mas não carregam imediatamente)
   getIt.registerFactory(() => AddressCubit());
   getIt.registerFactory(() => HomeCubit());
-  getIt.registerFactory(() => LojasCubit(getIt<LojaRepository>()));
+  
+  // ✅ LocalizacaoCubit registrado como Singleton para ser acessado pelo LojasCubit
   getIt.registerSingleton<LocalizacaoCubit>(LocalizacaoCubit(getIt<SharedPreferences>()));
+
+  getIt.registerFactory(() => LojasCubit(
+    getIt<LojaRepository>(),
+    getIt<LocalizacaoCubit>(), // ← Agora injetado corretamente
+  ));
 
   getIt.registerFactoryParam<LojaHomeCubit, int, void>(
         (lojaId, _) => LojaHomeCubit(getIt<LojaHomeRepository>(), lojaId),

@@ -32,6 +32,7 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
           latitude: (data['latitude'] as num).toDouble(),
           longitude: (data['longitude'] as num).toDouble(),
           enderecoFormatado: data['enderecoFormatado'],
+          referencia: data['referencia'],
           origem: data['origem'] ?? 'endereco_padrao',
         ));
       } catch (e) {
@@ -47,11 +48,13 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
     required double latitude,
     required double longitude,
     String? enderecoFormatado,
+    String? referencia,
   }) {
     final estado = LocalizacaoCarregada(
       latitude: latitude,
       longitude: longitude,
       enderecoFormatado: enderecoFormatado,
+      referencia: referencia,
       origem: 'manual',
     );
     _salvarLocalizacao(estado);
@@ -63,6 +66,7 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
       'latitude': estado.latitude,
       'longitude': estado.longitude,
       'enderecoFormatado': estado.enderecoFormatado,
+      'referencia': estado.referencia,
       'origem': estado.origem,
     };
     await _prefs.setString('endereco_padrao', jsonEncode(data));

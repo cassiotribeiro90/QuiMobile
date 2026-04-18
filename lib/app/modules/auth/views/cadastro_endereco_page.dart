@@ -23,6 +23,7 @@ class _CadastroEnderecoPageState extends State<CadastroEnderecoPage> {
   final _logradouroController = TextEditingController();
   final _numeroController = TextEditingController();
   final _complementoController = TextEditingController();
+  final _referenciaController = TextEditingController();
   final _bairroController = TextEditingController();
   final _cidadeController = TextEditingController();
   final _ufController = TextEditingController();
@@ -37,6 +38,7 @@ class _CadastroEnderecoPageState extends State<CadastroEnderecoPage> {
     _logradouroController.dispose();
     _numeroController.dispose();
     _complementoController.dispose();
+    _referenciaController.dispose();
     _bairroController.dispose();
     _cidadeController.dispose();
     _ufController.dispose();
@@ -102,6 +104,7 @@ class _CadastroEnderecoPageState extends State<CadastroEnderecoPage> {
         logradouro: _logradouroController.text.trim(),
         numero: _numeroController.text.trim(),
         complemento: _complementoController.text.trim(),
+        referencia: _referenciaController.text.trim().isEmpty ? null : _referenciaController.text.trim(),
         bairro: _bairroController.text.trim(),
         cidade: _cidadeController.text.trim(),
         uf: _ufController.text.trim(),
@@ -210,12 +213,24 @@ class _CadastroEnderecoPageState extends State<CadastroEnderecoPage> {
                       child: TextFormField(
                         controller: _complementoController,
                         decoration: const InputDecoration(
-                          labelText: 'Complemento',
+                          labelText: 'Complemento (opcional)',
                           border: OutlineInputBorder(),
                         ),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _referenciaController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Ponto de referência (opcional)',
+                    hintText: 'Ex: portão verde, próximo ao mercado',
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
                 ),
                 const SizedBox(height: 16),
 

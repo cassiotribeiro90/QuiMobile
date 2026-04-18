@@ -9,6 +9,7 @@ import '../services/localizacao_service.dart';
 import 'busca_endereco_page.dart';
 import 'cep_input_page.dart';
 import 'localizacao_confirmacao_page.dart';
+import 'widgets/onboarding_option_card.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -79,38 +80,52 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = const Color(0xFFF57C00);
+
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 60),
-                  const Center(
-                    child: Icon(Icons.storefront, size: 80, color: Color(0xFFF57C00)),
-                  ),
-                  const SizedBox(height: 24),
-                  const Center(
-                    child: Text(
-                      'QuiPede',
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFFF57C00)),
+                  const SizedBox(height: 40),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.delivery_dining_rounded, size: 100, color: primaryColor),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Center(
-                    child: Text(
-                      'Vamos encontrar lojas perto de você',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                  const SizedBox(height: 40),
+                  const Text(
+                    'Como você quer começar?',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E1E1E),
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Escolha uma forma de definir seu endereço de entrega e encontre as melhores lojas.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade600,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
                   
-                  _OptionCard(
-                    icon: Icons.location_on_outlined,
+                  OnboardingOptionCard(
+                    icon: Icons.markunread_mailbox_rounded,
                     title: 'Informar CEP',
                     subtitle: 'Rápido e preciso',
                     onTap: () => Navigator.push(
@@ -120,66 +135,49 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   ),
                   
                   if (PlatformUtils.isMobile)
-                    _OptionCard(
-                      icon: Icons.my_location,
+                    OnboardingOptionCard(
+                      icon: Icons.my_location_rounded,
                       title: 'Usar localização atual',
                       subtitle: 'Encontre lojas próximas',
                       onTap: _usarLocalizacaoAtual,
                     ),
-
-                  _OptionCard(
-                    icon: Icons.search,
+                    
+                  OnboardingOptionCard(
+                    icon: Icons.search_rounded,
                     title: 'Buscar endereço',
-                    subtitle: 'Digite rua, bairro ou cidade',
+                    subtitle: 'Digite rua ou bairro',
                     onTap: _irParaBuscaEndereco,
                   ),
-                  _OptionCard(
-                    icon: Icons.person_outline,
+                  OnboardingOptionCard(
+                    icon: Icons.person_outline_rounded,
                     title: 'Já tenho uma conta',
                     subtitle: 'Entrar com email ou redes sociais',
                     onTap: () => Navigator.pushNamed(context, Routes.login),
                   ),
+                  
+                  const SizedBox(height: 40),
+                  Center(
+                    child: Text(
+                      'Ao continuar, você concorda com nossos Termos de Uso.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
           if (_isLoading)
             Container(
-              color: Colors.black26,
-              child: const Center(child: CircularProgressIndicator()),
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF57C00)),
+                ),
+              ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _OptionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _OptionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Icon(icon, color: const Color(0xFFF57C00), size: 32),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
       ),
     );
   }

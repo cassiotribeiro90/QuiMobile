@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../routes/app_routes.dart';
+import 'package:quipede/app/routes/app_routes.dart';
 import '../bloc/localizacao_cubit.dart';
 import 'widgets/endereco_card.dart';
 
@@ -23,11 +23,13 @@ class LocalizacaoConfirmacaoPage extends StatefulWidget {
 class _LocalizacaoConfirmacaoPageState extends State<LocalizacaoConfirmacaoPage> {
   final _numeroController = TextEditingController();
   final _complementoController = TextEditingController();
+  final _referenciaController = TextEditingController();
 
   @override
   void dispose() {
     _numeroController.dispose();
     _complementoController.dispose();
+    _referenciaController.dispose();
     super.dispose();
   }
 
@@ -39,12 +41,15 @@ class _LocalizacaoConfirmacaoPageState extends State<LocalizacaoConfirmacaoPage>
       return;
     }
     
+    // ✅ Persistência e atualização do estado global acontecem APENAS AQUI
     context.read<LocalizacaoCubit>().definirLocalizacaoManual(
       latitude: widget.latitude,
       longitude: widget.longitude,
       enderecoFormatado: '${widget.endereco['logradouro']}, ${_numeroController.text}',
+      referencia: _referenciaController.text.trim().isEmpty ? null : _referenciaController.text.trim(),
     );
-    Navigator.pushReplacementNamed(context, Routes.home);
+    
+    Navigator.pushNamedAndRemoveUntil(context, Routes.home, (route) => false);
   }
 
   @override
@@ -76,7 +81,7 @@ class _LocalizacaoConfirmacaoPageState extends State<LocalizacaoConfirmacaoPage>
             Row(
               children: [
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: TextField(
                     controller: _numeroController,
                     keyboardType: TextInputType.number,
@@ -85,19 +90,30 @@ class _LocalizacaoConfirmacaoPageState extends State<LocalizacaoConfirmacaoPage>
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  flex: 3,
+                  flex: 2,
                   child: TextField(
                     controller: _complementoController,
-                    decoration: const InputDecoration(labelText: 'Complemento', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Complemento (opcional)', border: OutlineInputBorder()),
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _referenciaController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Ponto de referência (opcional)',
+                hintText: 'Ex: portão verde, próximo ao mercado',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
             ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _confirmar,
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-              child: const Text('CONFIRMAR E CONTINUAR'),
+              child: const Text('CONFIRMAR E CONTINUAR', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),

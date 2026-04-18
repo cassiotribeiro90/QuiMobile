@@ -112,7 +112,7 @@ class AppDrawer extends StatelessWidget {
     if (confirm == true) {
       await context.read<AuthCubit>().logout();
       if (context.mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, Routes.home, (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, Routes.onboarding, (route) => false);
       }
     }
   }

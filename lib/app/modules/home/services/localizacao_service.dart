@@ -32,7 +32,6 @@ class LocalizacaoService {
     );
 
     if (response.data != null && response.data['success'] == true) {
-      // Ajuste: A API retorna data -> items
       final List items = response.data['data']['items'] ?? [];
       return items.map((e) => EnderecoSugestao.fromJson(e)).toList();
     }
@@ -44,6 +43,15 @@ class LocalizacaoService {
     final response = await _apiClient.get(
       AppConfig.BUSCAR_CEP,
       queryParameters: {'cep': cep.replaceAll(RegExp(r'\D'), '')},
+      requiresAuth: false,
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> confirmarEndereco(Map<String, dynamic> dados) async {
+    final response = await _apiClient.post(
+      AppConfig.CONFIRMAR_ENDERECO,
+      data: dados,
       requiresAuth: false,
     );
     return response.data;

@@ -10,24 +10,31 @@ class SocialLoginButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Row(
+        Row(
           children: [
-            Expanded(child: Divider()),
+            Expanded(child: Divider(color: Colors.grey.shade300)),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Ou continue com', style: TextStyle(color: Colors.grey)),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'ou continue com',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              ),
             ),
-            Expanded(child: Divider()),
+            Expanded(child: Divider(color: Colors.grey.shade300)),
           ],
         ),
         const SizedBox(height: 24),
         // Google
         _SocialButton(
           onPressed: () => context.read<AuthCubit>().socialLogin('google'),
-          icon: const Icon(Icons.g_mobiledata, size: 32, color: Colors.red), // Usando ícone como fallback se não houver imagem
+          icon: Image.network(
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png',
+            height: 24,
+          ),
           label: 'Google',
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
+          hasBorder: true,
         ),
         const SizedBox(height: 12),
         // Facebook
@@ -60,6 +67,7 @@ class _SocialButton extends StatelessWidget {
   final String label;
   final Color backgroundColor;
   final Color foregroundColor;
+  final bool hasBorder;
 
   const _SocialButton({
     required this.onPressed,
@@ -67,29 +75,35 @@ class _SocialButton extends StatelessWidget {
     required this.label,
     required this.backgroundColor,
     required this.foregroundColor,
+    this.hasBorder = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
-      child: OutlinedButton.icon(
+      height: 48,
+      child: ElevatedButton(
         onPressed: onPressed,
-        icon: icon,
-        label: Text(
-          'Continuar com $label',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        style: OutlinedButton.styleFrom(
+        style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: foregroundColor,
-          side: backgroundColor == Colors.white
-              ? const BorderSide(color: Color(0xFFE0E0E0))
-              : BorderSide.none,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
+            side: hasBorder ? BorderSide(color: Colors.grey.shade300) : BorderSide.none,
           ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            icon,
+            const SizedBox(width: 12),
+            Text(
+              'Entrar com $label',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ],
         ),
       ),
     );

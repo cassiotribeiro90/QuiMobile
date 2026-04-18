@@ -27,6 +27,7 @@ class CadastroEnderecoModel {
   final String logradouro;
   final String numero;
   final String? complemento;
+  final String? referencia;
   final String bairro;
   final String cidade;
   final String uf;
@@ -39,6 +40,7 @@ class CadastroEnderecoModel {
     required this.logradouro,
     required this.numero,
     this.complemento,
+    this.referencia,
     required this.bairro,
     required this.cidade,
     required this.uf,
@@ -52,6 +54,7 @@ class CadastroEnderecoModel {
     'logradouro': logradouro,
     'numero': numero,
     'complemento': complemento,
+    'referencia': referencia,
     'bairro': bairro,
     'cidade': cidade,
     'uf': uf,

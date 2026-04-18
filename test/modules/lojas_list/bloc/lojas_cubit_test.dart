@@ -1,5 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:quipede/app/modules/home/bloc/localizacao_cubit.dart';
+import 'package:quipede/app/modules/home/bloc/localizacao_state.dart';
 import 'package:quipede/app/modules/lojas_list/bloc/lojas_cubit.dart';
 import 'package:quipede/app/modules/lojas_list/bloc/lojas_state.dart';
 import 'package:quipede/app/modules/lojas_list/repository/loja_repository.dart';
@@ -9,7 +12,10 @@ import 'package:quipede/app/models/enums.dart';
 
 import '../../../helpers/test_models.dart';
 
-// Implementação Fake manual para evitar dependência do build_runner
+// Mock manual para evitar dependência do build_runner
+class MockLocalizacaoCubit extends Mock implements LocalizacaoCubit {}
+
+// Implementação Fake manual para evitar dependência do build_runner em alguns cenários
 class FakeLojaRepository implements LojaRepository {
   @override
   Future<LojaResumoResponseModel> getLojas({
@@ -44,10 +50,17 @@ class FakeLojaRepository implements LojaRepository {
 void main() {
   late LojasCubit cubit;
   late FakeLojaRepository fakeRepository;
+  late MockLocalizacaoCubit mockLocalizacaoCubit;
 
   setUp(() {
     fakeRepository = FakeLojaRepository();
-    cubit = LojasCubit(fakeRepository);
+    mockLocalizacaoCubit = MockLocalizacaoCubit();
+    
+    // Configura o estado inicial do mock
+    when(mockLocalizacaoCubit.state).thenReturn(LocalizacaoInitial());
+    when(mockLocalizacaoCubit.stream).thenAnswer((_) => Stream.fromIterable([]));
+
+    cubit = LojasCubit(fakeRepository, mockLocalizacaoCubit);
   });
 
   tearDown(() {

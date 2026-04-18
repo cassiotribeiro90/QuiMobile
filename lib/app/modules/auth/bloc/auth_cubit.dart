@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app_config.dart';
 import '../../../../shared/api/api_client.dart';
+import '../../../di/dependencies.dart';
+import '../../home/bloc/localizacao_cubit.dart';
 import '../models/auth_response_model.dart';
 import '../models/usuario_model.dart';
 import '../services/social_auth_service.dart';
@@ -232,6 +234,12 @@ class AuthCubit extends Cubit<AuthState> {
     } finally {
       _usuario = null;
       await _apiClient.tokenService.clearTokens();
+      
+      // Limpa localização local
+      if (getIt.isRegistered<LocalizacaoCubit>()) {
+        await getIt<LocalizacaoCubit>().limparLocalizacao();
+      }
+
       emit(AuthUnauthenticated());
       _isProcessing = false;
     }

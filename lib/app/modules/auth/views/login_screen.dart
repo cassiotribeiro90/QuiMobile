@@ -60,23 +60,21 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    const primaryColor = Color(0xFFF57C00);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Login'),
-        centerTitle: true,
         elevation: 0,
+        backgroundColor: Colors.white,
       ),
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) async {
           if (state is AuthAuthenticated) {
-            print('✅ Login bem-sucedido');
-            
-            // ✅ Processar ação pendente se existir
             final acaoPendente = args?['acaoPendente'];
             if (acaoPendente != null) {
               await _processarAcaoPendente(acaoPendente);
@@ -96,141 +94,141 @@ class _LoginScreenState extends State<LoginScreen> {
             }
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
             );
           }
         },
         child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Center(
-                  child: Icon(
-                    Icons.storefront_rounded,
-                    size: 80,
-                    color: Color(0xFF3949AB),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
+                  child: const Icon(Icons.person_rounded, size: 64, color: primaryColor),
                 ),
-                const SizedBox(height: 30),
-                Text(
-                  'Bem-vindo de volta!',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3949AB),
-                  ),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Bem-vindo de volta!',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E1E1E),
                 ),
-                const Text(
-                  'Acesse sua conta para continuar',
-                  style: TextStyle(color: Colors.grey, fontSize: 16),
-                ),
-                const SizedBox(height: 30),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Faça login para continuar sua experiência.',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+              const SizedBox(height: 32),
 
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'E-mail',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'E-mail',
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  hintText: 'Senha',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                      size: 20,
                     ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                const SizedBox(height: 20),
+              ),
 
-                TextField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Senha',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {},
+                  child: const Text('Esqueceu a senha?', style: TextStyle(color: primaryColor)),
                 ),
+              ),
+              const SizedBox(height: 16),
 
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Funcionalidade em desenvolvimento'),
-                        ),
-                      );
-                    },
-                    child: const Text('Esqueceu a senha?'),
-                  ),
-                ),
-                const SizedBox(height: 10),
+              BlocBuilder<AuthCubit, AuthState>(
+                builder: (context, state) {
+                  final isLoading = state is AuthLoading;
 
-                BlocBuilder<AuthCubit, AuthState>(
-                  builder: (context, state) {
-                    final isLoading = state is AuthLoading;
-
-                    return SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text(
-                          'ENTRAR',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  return SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-                
-                const SocialLoginButtons(),
-                
-                const SizedBox(height: 24),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text(
+                              'ENTRAR',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 32),
+              
+              const SocialLoginButtons(),
+              
+              const SizedBox(height: 32),
 
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Não tem uma conta?'),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, Routes.cadastroInfo);
-                        },
-                        child: const Text(
-                          'Cadastre-se',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Não tem uma conta?', style: TextStyle(color: Colors.grey)),
+                    TextButton(
+                      onPressed: () => Navigator.pushNamed(context, Routes.cadastroInfo),
+                      child: const Text(
+                        'Cadastre-se',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

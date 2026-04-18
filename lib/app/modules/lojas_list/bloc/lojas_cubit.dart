@@ -4,9 +4,12 @@ import '../../../models/loja_resumo_model.dart';
 import 'lojas_state.dart';
 import '../repository/loja_repository.dart';
 import '../../../models/pagination_model.dart';
+import '../../home/bloc/localizacao_cubit.dart';
+import '../../home/bloc/localizacao_state.dart';
 
 class LojasCubit extends Cubit<LojasState> {
   final LojaRepository _repository;
+  final LocalizacaoCubit _localizacaoCubit;
   String? _categoriaAtual;
   String? _ordenacaoAtual;
   String? _searchQuery;
@@ -15,7 +18,7 @@ class LojasCubit extends Cubit<LojasState> {
   
   bool _isFetching = false;
 
-  LojasCubit(this._repository) : super(LojasInitial());
+  LojasCubit(this._repository, this._localizacaoCubit) : super(LojasInitial());
 
   Future<void> fetchLojas({
     int page = 1,
@@ -41,12 +44,23 @@ class LojasCubit extends Cubit<LojasState> {
         emit((state as LojasLoaded).copyWith(isLoadingMore: true));
       }
 
+      // Obtém coordenadas do LocalizacaoCubit para ordenação por proximidade
+      double? lat;
+      double? lng;
+      final localizacaoState = _localizacaoCubit.state;
+      if (localizacaoState is LocalizacaoCarregada) {
+        lat = localizacaoState.latitude;
+        lng = localizacaoState.longitude;
+      }
+
       final response = await _repository.getLojas(
         page: page,
         perPage: perPage,
         categoria: _categoriaAtual,
         ordenarPor: _ordenacaoAtual,
         busca: _searchQuery,
+        latitude: lat,
+        longitude: lng,
       );
 
       _lastPagination = response.pagination;
