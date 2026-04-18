@@ -1,4 +1,6 @@
-class EnderecoModel {
+import 'package:equatable/equatable.dart';
+
+class EnderecoModel extends Equatable {
   final String cep;
   final String logradouro;
   final String numero;
@@ -10,7 +12,7 @@ class EnderecoModel {
   final double? latitude;
   final double? longitude;
 
-  EnderecoModel({
+  const EnderecoModel({
     required this.cep,
     required this.logradouro,
     required this.numero,
@@ -29,9 +31,10 @@ class EnderecoModel {
     if (numero.isNotEmpty && numero != 'S/N') {
       buffer.write(', $numero');
     }
-    if (bairro.isNotEmpty) {
-      buffer.write(' - $bairro');
-    }
+    // Opcional: remover o bairro se o título ficar muito longo na AppBar
+    // if (bairro.isNotEmpty) {
+    //   buffer.write(' - $bairro');
+    // }
     return buffer.toString();
   }
 
@@ -68,5 +71,37 @@ class EnderecoModel {
     if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value);
     return null;
+  }
+
+  @override
+  List<Object?> get props => [
+    cep, logradouro, numero, complemento, referencia, 
+    bairro, cidade, uf, latitude, longitude
+  ];
+
+  EnderecoModel copyWith({
+    String? cep,
+    String? logradouro,
+    String? numero,
+    String? complemento,
+    String? referencia,
+    String? bairro,
+    String? cidade,
+    String? uf,
+    double? latitude,
+    double? longitude,
+  }) {
+    return EnderecoModel(
+      cep: cep ?? this.cep,
+      logradouro: logradouro ?? this.logradouro,
+      numero: numero ?? this.numero,
+      complemento: complemento ?? this.complemento,
+      referencia: referencia ?? this.referencia,
+      bairro: bairro ?? this.bairro,
+      cidade: cidade ?? this.cidade,
+      uf: uf ?? this.uf,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
   }
 }

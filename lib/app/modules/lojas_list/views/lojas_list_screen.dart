@@ -7,6 +7,7 @@ import '../widgets/loja_item.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../core/theme/app_theme_extension.dart';
 import '../../../routes/app_routes.dart';
+import '../../../widgets/app_drawer.dart';
 import '../../../models/lojas_list_filter_option_model.dart';
 import '../../carrinho/widgets/carrinho_bottom_bar.dart';
 import '../../carrinho/bloc/carrinho_cubit.dart';
@@ -95,39 +96,34 @@ class _LojasListScreenState extends State<LojasListScreen> {
     return BlocBuilder<LocalizacaoCubit, LocalizacaoState>(
       builder: (context, state) {
         String titulo = 'Selecionar endereço';
-        String? subtitulo;
         
         if (state is LocalizacaoCarregada) {
-          titulo = state.enderecoFormatado ?? 'Endereço definido';
-          subtitulo = 'Entregar agora';
+          titulo = state.enderecoFormatado;
+          debugPrint('📍 [LojasListScreen] AppBar título: $titulo');
         }
 
         return GestureDetector(
           onTap: () => _navegarParaEnderecos(context),
-          child: Column(
+          behavior: HitTestBehavior.opaque,
+          child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.location_on_rounded, size: 16, color: context.primaryColor),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      titulo,
-                      style: context.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              Icon(Icons.location_on_rounded, size: 18, color: context.primaryColor),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  titulo,
+                  style: context.bodyLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: context.textPrimary,
                   ),
-                  Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: context.textSecondary),
-                ],
-              ),
-              if (subtitulo != null)
-                Text(
-                  subtitulo,
-                  style: context.bodySmall.copyWith(color: context.textSecondary, fontSize: 10),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.keyboard_arrow_down_rounded, size: 22, color: context.textSecondary),
             ],
           ),
         );
@@ -144,7 +140,6 @@ class _LojasListScreenState extends State<LojasListScreen> {
       child: BlocListener<LocalizacaoCubit, LocalizacaoState>(
         listener: (context, state) {
           if (state is LocalizacaoNaoEncontrada) {
-            // Se o endereço for limpo, decide se vai para Login ou Endereços
             _navegarParaEnderecos(context);
           }
         },
@@ -152,12 +147,26 @@ class _LojasListScreenState extends State<LojasListScreen> {
           builder: (context, state) {
             return Scaffold(
               backgroundColor: context.backgroundColor,
+              drawer: const AppDrawer(),
               appBar: AppBar(
                 title: _buildAppBarTitle(context),
                 centerTitle: true,
+                titleSpacing: 0,
                 elevation: 0,
                 backgroundColor: context.backgroundColor,
                 foregroundColor: context.textPrimary,
+                leading: Builder(
+                  builder: (context) => IconButton(
+                    icon: const Icon(Icons.menu_rounded),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                ),
+                actions: [
+                   IconButton(
+                    icon: const Icon(Icons.notifications_none_rounded),
+                    onPressed: () {},
+                  ),
+                ],
               ),
               body: Column(
                 children: [

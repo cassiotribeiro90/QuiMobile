@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,7 +9,9 @@ import 'localizacao_state.dart';
 class LocalizacaoCubit extends Cubit<LocalizacaoState> {
   final SharedPreferences _prefs;
 
-  LocalizacaoCubit(this._prefs) : super(LocalizacaoInitial());
+  LocalizacaoCubit(this._prefs) : super(LocalizacaoInitial()) {
+    carregarLocalizacaoDoEnderecoPadrao(); // ✅ Carregar ao iniciar
+  }
 
   /// Atualiza a posição atual (vinda do GPS)
   void atualizarPosicao(Position posicao, {String? enderecoFormatado}) {
@@ -34,19 +37,23 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
   /// Carrega localização a partir do endereço padrão salvo
   Future<void> carregarLocalizacaoDoEnderecoPadrao() async {
     final enderecoJson = _prefs.getString('endereco_padrao');
+    debugPrint('🔍 [LocalizacaoCubit] Carregando endereço salvo: $enderecoJson');
     
     if (enderecoJson != null) {
       try {
         final Map<String, dynamic> data = jsonDecode(enderecoJson);
         final endereco = EnderecoModel.fromJson(data);
+        debugPrint('🔍 [LocalizacaoCubit] Endereço carregado: ${endereco.resumido}');
         emit(LocalizacaoCarregada(
           endereco: endereco,
           origem: data['origem'] ?? 'endereco_padrao',
         ));
       } catch (e) {
+        debugPrint('❌ [LocalizacaoCubit] Erro ao decodificar endereço: $e');
         emit(LocalizacaoNaoEncontrada());
       }
     } else {
+      debugPrint('🔍 [LocalizacaoCubit] Nenhum endereço salvo encontrado');
       emit(LocalizacaoNaoEncontrada());
     }
   }
@@ -58,7 +65,6 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
     String? enderecoFormatado,
     String? referencia,
   }) {
-    // Para manter compatibilidade com as chamadas existentes, criamos o modelo aqui
     final endereco = EnderecoModel(
       cep: '',
       logradouro: enderecoFormatado ?? 'Endereço definido',
@@ -75,8 +81,10 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
       endereco: endereco,
       origem: 'manual',
     );
+    
     _salvarLocalizacao(estado);
     emit(estado);
+    debugPrint('✅ [LocalizacaoCubit] Cubit atualizado e salvo: ${endereco.resumido}');
   }
 
   /// Define a localização a partir de um modelo completo (após confirmação da API)
@@ -87,16 +95,24 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
     );
     _salvarLocalizacao(estado);
     emit(estado);
+    debugPrint('✅ [LocalizacaoCubit] Endereço completo definido e salvo: ${endereco.resumido}');
   }
 
   Future<void> _salvarLocalizacao(LocalizacaoCarregada estado) async {
-    final data = estado.endereco.toJson();
-    data['origem'] = estado.origem;
-    await _prefs.setString('endereco_padrao', jsonEncode(data));
+    try {
+      final data = estado.endereco.toJson();
+      data['origem'] = estado.origem;
+      final json = jsonEncode(data);
+      await _prefs.setString('endereco_padrao', json);
+      debugPrint('✅ [LocalizacaoCubit] Dados persistidos no SharedPreferences: $json');
+    } catch (e) {
+      debugPrint('❌ [LocalizacaoCubit] Erro ao persistir endereço: $e');
+    }
   }
 
   Future<void> limparLocalizacao() async {
     await _prefs.remove('endereco_padrao');
+    debugPrint('🗑️ [LocalizacaoCubit] Endereço removido do SharedPreferences');
     emit(LocalizacaoNaoEncontrada());
   }
 }
