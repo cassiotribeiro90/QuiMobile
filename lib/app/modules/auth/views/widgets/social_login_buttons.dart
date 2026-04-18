@@ -27,10 +27,7 @@ class SocialLoginButtons extends StatelessWidget {
         // Google
         _SocialButton(
           onPressed: () => context.read<AuthCubit>().socialLogin('google'),
-          icon: Image.network(
-            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png',
-            height: 24,
-          ),
+          icon: const Icon(Icons.g_mobiledata, color: Colors.black87, size: 24),
           label: 'Google',
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../home/bloc/localizacao_cubit.dart';
 import '../../home/bloc/localizacao_state.dart';
 import '../bloc/auth_cubit.dart';
+import '../bloc/auth_state.dart';
 import '../../../routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -34,17 +35,18 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
-      final hasLocation = localizacaoCubit.state is LocalizacaoCarregada;
+      final localizacaoState = localizacaoCubit.state;
+      final hasLocation = localizacaoState is LocalizacaoCarregada;
       
       print('🚀 [Navigation] Endereço definido: $hasLocation');
 
       String targetRoute;
       
-      // Regra: Se não tem localização definida, SEMPRE vai para Onboarding
+      // REGRA: Se NÃO tem endereço, vai para Onboarding (Convidado ou Logado)
       if (!hasLocation) {
         targetRoute = Routes.onboarding;
       } else {
-        // Se tem localização, vai para a Home (Lojas)
+        // Se TEM endereço, vai para a Home (Lojas)
         targetRoute = Routes.home;
       }
 

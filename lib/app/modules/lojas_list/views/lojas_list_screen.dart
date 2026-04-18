@@ -10,6 +10,10 @@ import '../../../routes/app_routes.dart';
 import '../../../models/lojas_list_filter_option_model.dart';
 import '../../carrinho/widgets/carrinho_bottom_bar.dart';
 import '../../carrinho/bloc/carrinho_cubit.dart';
+import '../../home/bloc/localizacao_cubit.dart';
+import '../../home/bloc/localizacao_state.dart';
+import '../../auth/bloc/auth_cubit.dart';
+import '../../auth/bloc/auth_state.dart';
 import '../../../di/dependencies.dart';
 
 class LojasListScreen extends StatefulWidget {
@@ -78,31 +82,93 @@ class _LojasListScreenState extends State<LojasListScreen> {
     );
   }
 
+  void _navegarParaEnderecos(BuildContext context) {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! AuthAuthenticated) {
+      Navigator.pushNamed(context, Routes.login);
+    } else {
+      Navigator.pushNamed(context, Routes.enderecos);
+    }
+  }
+
+  Widget _buildAppBarTitle(BuildContext context) {
+    return BlocBuilder<LocalizacaoCubit, LocalizacaoState>(
+      builder: (context, state) {
+        String titulo = 'Selecionar endereço';
+        String? subtitulo;
+        
+        if (state is LocalizacaoCarregada) {
+          titulo = state.enderecoFormatado ?? 'Endereço definido';
+          subtitulo = 'Entregar agora';
+        }
+
+        return GestureDetector(
+          onTap: () => _navegarParaEnderecos(context),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.location_on_rounded, size: 16, color: context.primaryColor),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      titulo,
+                      style: context.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: context.textSecondary),
+                ],
+              ),
+              if (subtitulo != null)
+                Text(
+                  subtitulo,
+                  style: context.bodySmall.copyWith(color: context.textSecondary, fontSize: 10),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: getIt<CarrinhoCubit>()),
       ],
-      child: BlocBuilder<LojasCubit, LojasState>(
-        builder: (context, state) {
-          return Scaffold(
-            backgroundColor: context.backgroundColor,
-            appBar: AppBar(
-              title: Text('Lojas', style: context.titleLarge),
-              elevation: 0,
-              backgroundColor: context.backgroundColor,
-              foregroundColor: context.textPrimary,
-            ),
-            body: Column(
-              children: [
-                _buildSearchTrigger(state),
-                Expanded(child: _buildBody(state)),
-              ],
-            ),
-            bottomNavigationBar: const CarrinhoBottomBar(),
-          );
+      child: BlocListener<LocalizacaoCubit, LocalizacaoState>(
+        listener: (context, state) {
+          if (state is LocalizacaoNaoEncontrada) {
+            // Se o endereço for limpo, decide se vai para Login ou Endereços
+            _navegarParaEnderecos(context);
+          }
         },
+        child: BlocBuilder<LojasCubit, LojasState>(
+          builder: (context, state) {
+            return Scaffold(
+              backgroundColor: context.backgroundColor,
+              appBar: AppBar(
+                title: _buildAppBarTitle(context),
+                centerTitle: true,
+                elevation: 0,
+                backgroundColor: context.backgroundColor,
+                foregroundColor: context.textPrimary,
+              ),
+              body: Column(
+                children: [
+                  _buildSearchTrigger(state),
+                  Expanded(child: _buildBody(state)),
+                ],
+              ),
+              bottomNavigationBar: const CarrinhoBottomBar(),
+            );
+          },
+        ),
       ),
     );
   }

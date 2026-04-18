@@ -9,4 +9,5 @@ class Routes {
   static const String carrinho = '/carrinho';
   static const String pedidos = '/pedidos';
   static const String perfil = '/perfil';
+  static const String enderecos = '/enderecos'; // CRUD de endereços
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../models/endereco_model.dart';
 import 'localizacao_state.dart';
 
 class LocalizacaoCubit extends Cubit<LocalizacaoState> {
@@ -11,10 +12,19 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
 
   /// Atualiza a posição atual (vinda do GPS)
   void atualizarPosicao(Position posicao, {String? enderecoFormatado}) {
-    final estado = LocalizacaoCarregada(
+    final endereco = EnderecoModel(
+      cep: '',
+      logradouro: enderecoFormatado ?? 'Localização atual',
+      numero: 'S/N',
+      bairro: '',
+      cidade: '',
+      uf: '',
       latitude: posicao.latitude,
       longitude: posicao.longitude,
-      enderecoFormatado: enderecoFormatado,
+    );
+
+    final estado = LocalizacaoCarregada(
+      endereco: endereco,
       origem: 'gps',
     );
     _salvarLocalizacao(estado);
@@ -28,11 +38,9 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
     if (enderecoJson != null) {
       try {
         final Map<String, dynamic> data = jsonDecode(enderecoJson);
+        final endereco = EnderecoModel.fromJson(data);
         emit(LocalizacaoCarregada(
-          latitude: (data['latitude'] as num).toDouble(),
-          longitude: (data['longitude'] as num).toDouble(),
-          enderecoFormatado: data['enderecoFormatado'],
-          referencia: data['referencia'],
+          endereco: endereco,
           origem: data['origem'] ?? 'endereco_padrao',
         ));
       } catch (e) {
@@ -50,25 +58,40 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
     String? enderecoFormatado,
     String? referencia,
   }) {
-    final estado = LocalizacaoCarregada(
+    // Para manter compatibilidade com as chamadas existentes, criamos o modelo aqui
+    final endereco = EnderecoModel(
+      cep: '',
+      logradouro: enderecoFormatado ?? 'Endereço definido',
+      numero: '',
+      bairro: '',
+      cidade: '',
+      uf: '',
+      referencia: referencia,
       latitude: latitude,
       longitude: longitude,
-      enderecoFormatado: enderecoFormatado,
-      referencia: referencia,
+    );
+
+    final estado = LocalizacaoCarregada(
+      endereco: endereco,
       origem: 'manual',
     );
     _salvarLocalizacao(estado);
     emit(estado);
   }
 
+  /// Define a localização a partir de um modelo completo (após confirmação da API)
+  void definirEnderecoCompleto(EnderecoModel endereco, {String origem = 'manual'}) {
+    final estado = LocalizacaoCarregada(
+      endereco: endereco,
+      origem: origem,
+    );
+    _salvarLocalizacao(estado);
+    emit(estado);
+  }
+
   Future<void> _salvarLocalizacao(LocalizacaoCarregada estado) async {
-    final data = {
-      'latitude': estado.latitude,
-      'longitude': estado.longitude,
-      'enderecoFormatado': estado.enderecoFormatado,
-      'referencia': estado.referencia,
-      'origem': estado.origem,
-    };
+    final data = estado.endereco.toJson();
+    data['origem'] = estado.origem;
     await _prefs.setString('endereco_padrao', jsonEncode(data));
   }
 
