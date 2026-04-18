@@ -19,13 +19,13 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
       cardColor: AppColors.card,
       
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         elevation: 0,
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textPrimary,
         centerTitle: false,
-        titleTextStyle: AppTextStyles.titleMedium,
-        iconTheme: IconThemeData(color: AppColors.textPrimary),
+        titleTextStyle: AppTextStyles.titleMedium.copyWith(color: Colors.black),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       
       textTheme: const TextTheme(
