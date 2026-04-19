@@ -58,7 +58,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     const primaryColor = Color(0xFFF57C00);
 
@@ -219,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Text('Não tem uma conta?', style: TextStyle(color: Colors.grey)),
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, Routes.cadastroInfo),
+                      onPressed: () => Navigator.pushNamed(context, Routes.cadastro),
                       child: const Text(
                         'Cadastre-se',
                         style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor),
