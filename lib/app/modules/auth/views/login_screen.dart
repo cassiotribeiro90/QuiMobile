@@ -4,6 +4,8 @@ import '../bloc/auth_cubit.dart';
 import '../bloc/auth_state.dart';
 import '../../../routes/app_routes.dart';
 import '../../carrinho/bloc/carrinho_cubit.dart';
+import '../../home/bloc/localizacao_cubit.dart';
+import '../../home/bloc/localizacao_state.dart';
 import 'widgets/social_login_buttons.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -85,10 +87,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
               if (redirectTo != null) {
                 Navigator.pushReplacementNamed(context, redirectTo, arguments: params);
-              } else if (Navigator.canPop(context)) {
-                Navigator.pop(context);
+                return;
+              }
+
+              // ✅ Lógica de correção: Se logou com sucesso, verificar endereço
+              final localState = context.read<LocalizacaoCubit>().state;
+              if (localState is LocalizacaoCarregada) {
+                // Se tem endereço (retornado pelo login e salvo no Cubit), vai para Home
+                Navigator.pushNamedAndRemoveUntil(context, Routes.home, (route) => false);
               } else {
-                Navigator.pushReplacementNamed(context, Routes.home);
+                // Caso raro de não ter endereço nem após o login, vai para Onboarding
+                Navigator.pushNamedAndRemoveUntil(context, Routes.onboarding, (route) => false);
               }
             }
           } else if (state is AuthError) {

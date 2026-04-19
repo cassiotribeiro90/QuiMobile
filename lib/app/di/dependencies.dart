@@ -44,27 +44,32 @@ Future<void> setupDependencies() async {
   // ✅ 6. ThemeCubit (independente)
   getIt.registerSingleton<ThemeCubit>(ThemeCubit(getIt<SharedPreferences>()));
 
-  // ✅ 7. AuthCubit (criar primeiro, sem dependência do Carrinho)
-  getIt.registerSingleton<AuthCubit>(AuthCubit(getIt<ApiClient>()));
+  // ✅ 7. LocalizacaoCubit (Necessário para o AuthCubit)
+  getIt.registerSingleton<LocalizacaoCubit>(LocalizacaoCubit(getIt<SharedPreferences>()));
 
-  // ✅ 8. CarrinhoCubit (depende do AuthCubit, NÃO carregar imediatamente)
-  getIt.registerSingleton<CarrinhoCubit>(
-    CarrinhoCubit(
-      getIt<CarrinhoService>(),
-      getIt<AuthCubit>(),  // ← Passar AuthCubit
+  // ✅ 8. AuthCubit (Depende do ApiClient e do LocalizacaoCubit)
+  getIt.registerSingleton<AuthCubit>(
+    AuthCubit(
+      getIt<ApiClient>(),
+      getIt<LocalizacaoCubit>(),
     ),
   );
 
-  // ✅ 9. Cubits que dependem do AuthCubit (mas não carregam imediatamente)
+  // ✅ 9. CarrinhoCubit (depende do AuthCubit)
+  getIt.registerSingleton<CarrinhoCubit>(
+    CarrinhoCubit(
+      getIt<CarrinhoService>(),
+      getIt<AuthCubit>(),
+    ),
+  );
+
+  // ✅ 10. Outros Cubits
   getIt.registerFactory(() => AddressCubit());
   getIt.registerFactory(() => HomeCubit());
-  
-  // ✅ LocalizacaoCubit registrado como Singleton para ser acessado pelo LojasCubit
-  getIt.registerSingleton<LocalizacaoCubit>(LocalizacaoCubit(getIt<SharedPreferences>()));
 
   getIt.registerFactory(() => LojasCubit(
     getIt<LojaRepository>(),
-    getIt<LocalizacaoCubit>(), // ← Agora injetado corretamente
+    getIt<LocalizacaoCubit>(),
   ));
 
   getIt.registerFactoryParam<LojaHomeCubit, int, void>(

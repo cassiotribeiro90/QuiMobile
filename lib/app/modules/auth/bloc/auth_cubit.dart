@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app_config.dart';
 import '../../../../shared/api/api_client.dart';
-import '../../../di/dependencies.dart';
 import '../../home/bloc/localizacao_cubit.dart';
 import '../models/auth_response_model.dart';
 import '../models/usuario_model.dart';
@@ -12,10 +12,11 @@ import 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   final ApiClient _apiClient;
   final SocialAuthService _socialAuthService;
+  final LocalizacaoCubit _localizacaoCubit;
   bool _isProcessing = false;
   UsuarioModel? _usuario;
 
-  AuthCubit(this._apiClient) 
+  AuthCubit(this._apiClient, this._localizacaoCubit) 
       : _socialAuthService = SocialAuthService(_apiClient),
         super(AuthInitial());
 
@@ -25,7 +26,7 @@ class AuthCubit extends Cubit<AuthState> {
     if (_isProcessing) return;
     _isProcessing = true;
 
-    print('🔐 [AuthCubit] Iniciando checkAuthStatus...');
+    debugPrint('🔐 [AuthCubit] Iniciando checkAuthStatus...');
     emit(AuthChecking());
     
     try {
@@ -36,50 +37,51 @@ class AuthCubit extends Cubit<AuthState> {
         return;
       }
       
-      // 1. Validar expiração local
       if (_apiClient.tokenService.isTokenExpired()) {
-        print('🔐 [AuthCubit] Token expirado localmente, tentando refresh...');
+        debugPrint('🔐 [AuthCubit] Token expirado localmente, tentando refresh...');
         final refreshSuccess = await _apiClient.tokenService.refreshToken(_apiClient.dio);
         
         if (!refreshSuccess) {
-          print('🔐 [AuthCubit] Falha no refresh token.');
+          debugPrint('🔐 [AuthCubit] Falha no refresh token.');
           await _apiClient.tokenService.clearTokens();
           emit(AuthUnauthenticated());
           return;
         }
       }
 
-      // 2. Validar token br o backend e obter dados do usuário
-      print('🔐 [AuthCubit] Validando token br o backend (/app/auth/me)...');
+      debugPrint('🔐 [AuthCubit] Validando token br o backend (/app/auth/me)...');
       try {
         final response = await _apiClient.get('app/auth/me', requiresAuth: true);
         
         if (response.statusCode == 200 && response.data['success'] == true) {
-          final userData = response.data['data'];
-          _usuario = UsuarioModel.fromJson(userData);
+          final data = response.data['data'];
+          
+          debugPrint('🔄 [AuthCubit] INICIANDO MAPEAMENTO para AuthResponse');
+          final authResponse = AuthResponse.fromJson(data);
+          debugPrint('✅ [AuthCubit] MAPEAMENTO CONCLUÍDO');
+          
+          _usuario = authResponse.user;
+          
+          if (authResponse.endereco != null) {
+            _localizacaoCubit.definirEnderecoCompleto(authResponse.endereco!, origem: 'endereco_padrao');
+          }
+
           final currentToken = _apiClient.tokenService.getAccessToken()!;
           emit(AuthAuthenticated(accessToken: currentToken));
-          print('🔐 [AuthCubit] Usuário autenticado: ${_usuario?.nome}');
         } else {
-          print('🔐 [AuthCubit] Backend rejeitou o token.');
           await _apiClient.tokenService.clearTokens();
           emit(AuthUnauthenticated());
         }
       } catch (e) {
-        print('🔐 [AuthCubit] Erro ao validar token no backend: $e');
-        // Se for erro de rede, podemos manter o estado ou tentar novamente. 
-        // Se for 401, deslogar.
         if (e is DioException && e.response?.statusCode == 401) {
           await _apiClient.tokenService.clearTokens();
           emit(AuthUnauthenticated());
         } else {
-          // Erro de conexão, assume autenticado se tiver token (modo offline básico ou retry posterior)
           final currentToken = _apiClient.tokenService.getAccessToken()!;
           emit(AuthAuthenticated(accessToken: currentToken));
         }
       }
     } catch (e) {
-      print('🔐 [AuthCubit] Erro crítico no checkAuthStatus: $e');
       emit(AuthUnauthenticated());
     } finally {
       _isProcessing = false;
@@ -93,6 +95,8 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
 
     try {
+      debugPrint('🚀 [AuthCubit] Iniciando login: $email');
+      
       final response = await _apiClient.post(
         AppConfig.LOGIN, 
         data: {'email': email, 'senha': senha},
@@ -101,8 +105,17 @@ class AuthCubit extends Cubit<AuthState> {
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'];
+        
+        debugPrint('🔄 [AuthCubit] INICIANDO MAPEAMENTO para AuthResponse');
         final authResponse = AuthResponse.fromJson(data);
+        debugPrint('✅ [AuthCubit] MAPEAMENTO CONCLUÍDO');
+        
         _usuario = authResponse.user;
+        
+        if (authResponse.endereco != null) {
+          _localizacaoCubit.definirEnderecoCompleto(authResponse.endereco!, origem: 'endereco_padrao');
+        }
+
         await _saveAuthResponse(authResponse);
       } else {
         emit(AuthError(response.data['message'] ?? 'Erro no login'));
@@ -164,8 +177,17 @@ class AuthCubit extends Cubit<AuthState> {
 
       if (response.statusCode == 201 && response.data['success'] == true) {
         final data = response.data['data'];
+        
+        debugPrint('🔄 [AuthCubit] INICIANDO MAPEAMENTO para AuthResponse');
         final authResponse = AuthResponse.fromJson(data);
+        debugPrint('✅ [AuthCubit] MAPEAMENTO CONCLUÍDO');
+
         _usuario = authResponse.user;
+
+        if (authResponse.endereco != null) {
+          _localizacaoCubit.definirEnderecoCompleto(authResponse.endereco!, origem: 'endereco_padrao');
+        }
+
         await _saveAuthResponse(authResponse);
       } else {
         emit(AuthError(response.data['message'] ?? 'Erro no cadastro'));
@@ -202,11 +224,15 @@ class AuthCubit extends Cubit<AuthState> {
       }
 
       _usuario = response.user;
+
+      if (response.endereco != null) {
+        _localizacaoCubit.definirEnderecoCompleto(response.endereco!, origem: 'endereco_padrao');
+      }
+
       await _saveAuthResponse(response);
     } on SocialAuthCanceledException {
       emit(AuthUnauthenticated()); 
     } catch (e) {
-      print('🔐 [AuthCubit] Erro no socialLogin ($provider): $e');
       emit(AuthError(e.toString().replaceAll('Exception: ', '')));
     } finally {
       _isProcessing = false;
@@ -226,20 +252,14 @@ class AuthCubit extends Cubit<AuthState> {
     if (_isProcessing) return;
     _isProcessing = true;
 
-    print('📱 [LOGOUT] Iniciando logout...');
     try {
       await _apiClient.post('app/auth/logout', requiresAuth: false);
     } catch (e) {
-      print('📱 [LOGOUT] Erro no request de logout (ignorado): $e');
+      // ignore
     } finally {
       _usuario = null;
       await _apiClient.tokenService.clearTokens();
-      
-      // Limpa localização local
-      if (getIt.isRegistered<LocalizacaoCubit>()) {
-        await getIt<LocalizacaoCubit>().limparLocalizacao();
-      }
-
+      await _localizacaoCubit.limparLocalizacao();
       emit(AuthUnauthenticated());
       _isProcessing = false;
     }

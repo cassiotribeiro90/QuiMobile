@@ -193,10 +193,10 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     bool applyDebounce = true,
   }) async {
     if (_authCubit.state is! AuthAuthenticated) throw Exception('Usuário não autenticado');
-    if (_isAdding) return;
-
-    _isAdding = true;
     
+    // Permitir múltiplos cliques
+    _isAdding = true;
+
     if (state is CarrinhoLoaded) {
       emit((state as CarrinhoLoaded).copyWith(isDebouncing: true));
     } else {
@@ -259,10 +259,19 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     final currentState = state;
     if (currentState is! CarrinhoLoaded) return;
 
-    // Garante que o estado isDebouncing seja ativado apenas no primeiro clique
-    if (!currentState.isDebouncing) {
-      emit(currentState.copyWith(isDebouncing: true));
+    // ✅ CORREÇÃO: Atualização otimista necessária para o seletor não "travar" visualmente
+    if (novaQuantidade == 0) {
+      _itensMap.remove(itemId);
+    } else if (_itensMap.containsKey(itemId)) {
+      final item = _itensMap[itemId]!;
+      _itensMap[itemId] = item.copyWith(
+        quantidade: novaQuantidade,
+        precoTotal: item.precoUnitario * novaQuantidade
+      );
     }
+    
+    // Emite o novo valor IMEDIATAMENTE para a UI refletir o clique
+    _emitirEstadoAtualizado(isDebouncing: true);
     
     _pendingUpdates[itemId] = novaQuantidade;
     _updateDebounce?.cancel();

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 
 class EnderecoModel extends Equatable {
   final String cep;
@@ -31,26 +32,51 @@ class EnderecoModel extends Equatable {
     if (numero.isNotEmpty && numero != 'S/N') {
       buffer.write(', $numero');
     }
-    // Opcional: remover o bairro se o título ficar muito longo na AppBar
-    // if (bairro.isNotEmpty) {
-    //   buffer.write(' - $bairro');
-    // }
     return buffer.toString();
   }
 
   factory EnderecoModel.fromJson(Map<String, dynamic> json) {
-    return EnderecoModel(
-      cep: json['cep']?.toString() ?? '',
-      logradouro: json['logradouro']?.toString() ?? '',
-      numero: json['numero']?.toString() ?? 'S/N',
-      complemento: json['complemento']?.toString(),
-      referencia: json['referencia']?.toString(),
-      bairro: json['bairro']?.toString() ?? '',
-      cidade: json['cidade']?.toString() ?? '',
-      uf: json['uf']?.toString() ?? '',
-      latitude: _parseDouble(json['latitude']),
-      longitude: _parseDouble(json['longitude']),
-    );
+    try {
+      debugPrint('🔄 [EnderecoModel.fromJson] Iniciando parsing');
+      debugPrint('   - Keys recebidas: ${json.keys.join(', ')}');
+      
+      final camposObrigatorios = ['logradouro', 'numero', 'bairro', 'cidade', 'uf'];
+      for (var campo in camposObrigatorios) {
+        if (!json.containsKey(campo)) {
+          debugPrint('⚠️ [EnderecoModel.fromJson] Campo "$campo" NÃO ENCONTRADO!');
+        } else if (json[campo] == null) {
+          debugPrint('⚠️ [EnderecoModel.fromJson] Campo "$campo" é NULL!');
+        } else {
+          debugPrint('   - $campo: ${json[campo]} (${json[campo].runtimeType})');
+        }
+      }
+      
+      debugPrint('   - latitude: ${json['latitude']} (${json['latitude'].runtimeType})');
+      debugPrint('   - longitude: ${json['longitude']} (${json['longitude'].runtimeType})');
+
+      final result = EnderecoModel(
+        cep: json['cep']?.toString() ?? '',
+        logradouro: json['logradouro']?.toString() ?? '',
+        numero: json['numero']?.toString() ?? 'S/N',
+        complemento: json['complemento']?.toString(),
+        referencia: json['referencia']?.toString(),
+        bairro: json['bairro']?.toString() ?? '',
+        cidade: json['cidade']?.toString() ?? '',
+        uf: json['uf']?.toString() ?? '',
+        latitude: _parseDouble(json['latitude']),
+        longitude: _parseDouble(json['longitude']),
+      );
+
+      debugPrint('✅ [EnderecoModel.fromJson] Parsing concluído: ${result.resumido}');
+      return result;
+    } catch (e, stackTrace) {
+      debugPrint('❌ [EnderecoModel.fromJson] ERRO NO PARSING');
+      debugPrint('❌ Tipo: ${e.runtimeType}');
+      debugPrint('❌ Mensagem: $e');
+      debugPrint('❌ JSON recebido: $json');
+      debugPrint('❌ StackTrace: $stackTrace');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() => {
@@ -69,7 +95,14 @@ class EnderecoModel extends Equatable {
   static double? _parseDouble(dynamic value) {
     if (value == null) return null;
     if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value);
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed == null) {
+        debugPrint('⚠️ [EnderecoModel._parseDouble] Falha ao parsear String para double: "$value"');
+      }
+      return parsed;
+    }
+    debugPrint('⚠️ [EnderecoModel._parseDouble] Tipo inesperado: ${value.runtimeType} (valor: $value)');
     return null;
   }
 
