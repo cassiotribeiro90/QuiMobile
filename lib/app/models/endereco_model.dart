@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 
 class EnderecoModel extends Equatable {
+  final int? id;
   final String cep;
   final String logradouro;
   final String numero;
@@ -14,6 +15,7 @@ class EnderecoModel extends Equatable {
   final double? longitude;
 
   const EnderecoModel({
+    this.id,
     required this.cep,
     required this.logradouro,
     required this.numero,
@@ -55,6 +57,7 @@ class EnderecoModel extends Equatable {
       debugPrint('   - longitude: ${json['longitude']} (${json['longitude'].runtimeType})');
 
       final result = EnderecoModel(
+        id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? ''),
         cep: json['cep']?.toString() ?? '',
         logradouro: json['logradouro']?.toString() ?? '',
         numero: json['numero']?.toString() ?? 'S/N',
@@ -67,7 +70,7 @@ class EnderecoModel extends Equatable {
         longitude: _parseDouble(json['longitude']),
       );
 
-      debugPrint('✅ [EnderecoModel.fromJson] Parsing concluído: ${result.resumido}');
+      debugPrint('✅ [EnderecoModel.fromJson] Parsing concluído: ${result.resumido} (ID: ${result.id})');
       return result;
     } catch (e, stackTrace) {
       debugPrint('❌ [EnderecoModel.fromJson] ERRO NO PARSING');
@@ -80,6 +83,7 @@ class EnderecoModel extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'cep': cep,
     'logradouro': logradouro,
     'numero': numero,
@@ -108,11 +112,12 @@ class EnderecoModel extends Equatable {
 
   @override
   List<Object?> get props => [
-    cep, logradouro, numero, complemento, referencia, 
+    id, cep, logradouro, numero, complemento, referencia, 
     bairro, cidade, uf, latitude, longitude
   ];
 
   EnderecoModel copyWith({
+    int? id,
     String? cep,
     String? logradouro,
     String? numero,
@@ -125,6 +130,7 @@ class EnderecoModel extends Equatable {
     double? longitude,
   }) {
     return EnderecoModel(
+      id: id ?? this.id,
       cep: cep ?? this.cep,
       logradouro: logradouro ?? this.logradouro,
       numero: numero ?? this.numero,

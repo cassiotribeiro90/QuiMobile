@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/carrinho_item.dart';
 import '../../auth/bloc/auth_cubit.dart';
 import '../../auth/bloc/auth_state.dart';
@@ -21,6 +22,9 @@ class CarrinhoLoaded extends CarrinhoState {
   final int totalItens;
   final double subtotal;
   final String? lojaNome;
+  final double? taxaEntrega;
+  final double? total;
+  final double? distanciaKm;
   final bool isRequesting;
   final int? requestingItemId;
   final bool isDebouncing;
@@ -30,6 +34,9 @@ class CarrinhoLoaded extends CarrinhoState {
     required this.totalItens,
     required this.subtotal,
     this.lojaNome,
+    this.taxaEntrega,
+    this.total,
+    this.distanciaKm,
     this.isRequesting = false,
     this.requestingItemId,
     this.isDebouncing = false,
@@ -38,6 +45,7 @@ class CarrinhoLoaded extends CarrinhoState {
   @override
   List<Object?> get props => [
     itens, totalItens, subtotal, lojaNome, 
+    taxaEntrega, total, distanciaKm,
     isRequesting, requestingItemId, isDebouncing
   ];
 
@@ -46,6 +54,9 @@ class CarrinhoLoaded extends CarrinhoState {
     int? totalItens,
     double? subtotal,
     String? lojaNome,
+    double? taxaEntrega,
+    double? total,
+    double? distanciaKm,
     bool? isRequesting,
     int? requestingItemId,
     bool? isDebouncing,
@@ -55,6 +66,9 @@ class CarrinhoLoaded extends CarrinhoState {
       totalItens: totalItens ?? this.totalItens,
       subtotal: subtotal ?? this.subtotal,
       lojaNome: lojaNome ?? this.lojaNome,
+      taxaEntrega: taxaEntrega ?? this.taxaEntrega,
+      total: total ?? this.total,
+      distanciaKm: distanciaKm ?? this.distanciaKm,
       isRequesting: isRequesting ?? this.isRequesting,
       requestingItemId: requestingItemId ?? this.requestingItemId,
       isDebouncing: isDebouncing ?? this.isDebouncing,
@@ -105,6 +119,7 @@ class _PendingAdd {
 class CarrinhoCubit extends Cubit<CarrinhoState> {
   final CarrinhoService _service;
   final AuthCubit _authCubit;
+  final SharedPreferences _prefs;
   StreamSubscription? _authSubscription;
 
   Map<int, CarrinhoItem> _itensMap = {};
@@ -116,7 +131,7 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
   _PendingAdd? _pendingAdd;
   final Map<int, int> _pendingUpdates = {};
 
-  CarrinhoCubit(this._service, this._authCubit) : super(CarrinhoInitial()) {
+  CarrinhoCubit(this._service, this._authCubit, this._prefs) : super(CarrinhoInitial()) {
     _authSubscription = _authCubit.stream.listen((authState) {
       if (authState is AuthAuthenticated) {
         carregarCarrinho();
@@ -154,7 +169,8 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     }
 
     try {
-      final response = await _service.carregarCarrinho();
+      final enderecoId = _prefs.getInt('endereco_padrao_id');
+      final response = await _service.carregarCarrinho(enderecoId: enderecoId);
       _itensMap = {for (var item in response.itens) item.id: item};
       _pendingUpdates.clear();
       _pendingAdd = null;
@@ -164,6 +180,9 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
         totalItens: response.resumo.totalItens,
         subtotal: response.resumo.subtotal,
         lojaNome: response.resumo.lojaNome,
+        taxaEntrega: response.resumo.taxaEntrega,
+        total: response.resumo.total,
+        distanciaKm: response.resumo.distanciaKm,
         isRequesting: false,
         requestingItemId: null,
         isDebouncing: false,
@@ -240,6 +259,9 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
         totalItens: result.data!.resumo.totalItens,
         subtotal: result.data!.resumo.subtotal,
         lojaNome: result.data!.resumo.lojaNome,
+        taxaEntrega: result.data!.resumo.taxaEntrega,
+        total: result.data!.resumo.total,
+        distanciaKm: result.data!.resumo.distanciaKm,
         isDebouncing: false,
       ));
     } else if (result.isConflito && result.conflito != null) {
@@ -315,13 +337,28 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     final itens = _getSortedItens();
     final totalItens = itens.fold<int>(0, (sum, item) => sum + item.quantidade);
     final subtotal = itens.fold<double>(0, (sum, item) => sum + item.precoTotal);
-    String? lojaNome = state is CarrinhoLoaded ? (state as CarrinhoLoaded).lojaNome : null;
+    
+    double? taxaEntrega;
+    double? total;
+    double? distanciaKm;
+    String? lojaNome;
+
+    if (state is CarrinhoLoaded) {
+      final s = state as CarrinhoLoaded;
+      lojaNome = s.lojaNome;
+      taxaEntrega = s.taxaEntrega;
+      total = s.total;
+      distanciaKm = s.distanciaKm;
+    }
 
     emit(CarrinhoLoaded(
       itens: itens,
       totalItens: totalItens,
       subtotal: subtotal,
       lojaNome: lojaNome,
+      taxaEntrega: taxaEntrega,
+      total: total,
+      distanciaKm: distanciaKm,
       isRequesting: isRequesting,
       requestingItemId: requestingItemId,
       isDebouncing: isDebouncing,
@@ -369,6 +406,9 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
           totalItens: result.data!.resumo.totalItens,
           subtotal: result.data!.resumo.subtotal,
           lojaNome: result.data!.resumo.lojaNome,
+          taxaEntrega: result.data!.resumo.taxaEntrega,
+          total: result.data!.resumo.total,
+          distanciaKm: result.data!.resumo.distanciaKm,
           isDebouncing: false,
         ));
       } else {

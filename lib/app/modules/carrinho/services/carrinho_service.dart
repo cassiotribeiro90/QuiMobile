@@ -25,15 +25,18 @@ class CarrinhoService {
       
       if (itemId != null) data['item_id'] = itemId;
       if (produtoId != null) data['produto_id'] = produtoId;
-      if (observacao != null && observacao.isNotEmpty) {
+      
+      if (observacao != null) {
         data['observacao'] = observacao;
       }
 
       if (kDebugMode) {
-        print('📤 [CarrinhoService] PUT app/carrinho/atualizar -> $data');
+        print('📡 [CarrinhoService] ${itemId != null ? 'PUT' : 'POST'} app/carrinho/atualizar -> $data');
       }
 
-      final response = await _apiClient.put('app/carrinho/atualizar', data: data);
+      final response = itemId != null 
+          ? await _apiClient.put('app/carrinho/atualizar', data: data)
+          : await _apiClient.post('app/carrinho/atualizar', data: data);
       
       final int? statusCode = response.statusCode;
       final responseData = response.data;
@@ -42,19 +45,15 @@ class CarrinhoService {
         print('📥 [CarrinhoService] Resposta: $statusCode - $responseData');
       }
 
-      // ✅ 1. Trata Conflito de Loja (Prioridade)
       if (statusCode == 409 || (responseData is Map && responseData['code'] == 409)) {
-        if (kDebugMode) print('⚠️ [CarrinhoService] Conflito detectado (409)');
         return CarrinhoResult.conflito(CarrinhoConflito.fromJson(responseData));
       }
 
-      // ✅ 2. Trata Sucesso
-      if (statusCode == 200 && responseData is Map && responseData['code'] == 200) {
+      if ((statusCode == 200 || statusCode == 201) && responseData is Map && responseData['success'] == true) {
         final resData = CarrinhoResponse.fromJson(responseData['data']);
         return CarrinhoResult.success(resData);
       } 
 
-      // ✅ 3. Erro Genérico na resposta (mas status 200)
       if (responseData is Map && responseData['success'] == false) {
         return CarrinhoResult.error(responseData['message'] ?? 'Erro na operação');
       }
@@ -62,9 +61,6 @@ class CarrinhoService {
       return CarrinhoResult.error('Erro inesperado: $statusCode');
 
     } on DioException catch (e) {
-      if (kDebugMode) print('❌ [CarrinhoService] DioException: ${e.type} - ${e.response?.statusCode}');
-      
-      // ✅ Trata 409 vindo como exceção
       if (e.response?.statusCode == 409 || e.response?.data?['code'] == 409) {
         return CarrinhoResult.conflito(CarrinhoConflito.fromJson(e.response?.data));
       }
@@ -73,8 +69,7 @@ class CarrinhoService {
         e.response?.data?['message'] ?? e.message ?? 'Erro de conexão',
         code: e.response?.statusCode,
       );
-    } catch (e, stack) {
-      if (kDebugMode) print('❌ [CarrinhoService] Erro Fatal: $e\n$stack');
+    } catch (e) {
       return CarrinhoResult.error('Ocorreu um erro interno');
     }
   }
@@ -90,8 +85,13 @@ class CarrinhoService {
     }
   }
 
-  Future<CarrinhoResponse> carregarCarrinho() async {
-    final response = await _apiClient.get('app/carrinho');
+  Future<CarrinhoResponse> carregarCarrinho({int? enderecoId}) async {
+    final Map<String, dynamic> queryParams = {};
+    if (enderecoId != null) {
+      queryParams['endereco_id'] = enderecoId;
+    }
+
+    final response = await _apiClient.get('app/carrinho', queryParameters: queryParams);
     return CarrinhoResponse.fromJson(response.data['data']);
   }
 

@@ -76,6 +76,23 @@ class CarrinhoPage extends StatelessWidget {
 
             return Column(
               children: [
+                if (state.lojaNome != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        color: primaryColor,
+                        child: Text(
+                          state.lojaNome!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
@@ -89,23 +106,6 @@ class CarrinhoPage extends StatelessWidget {
                               },
                             );
                           },
-                        ),
-                      ),
-                if (state.lojaNome != null)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        color: Colors.orange.shade50,
-                        child: Text(
-                          state.lojaNome!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
                         ),
                       ),
                     ],
@@ -208,6 +208,8 @@ class CarrinhoPage extends StatelessWidget {
 
   Widget _buildResumo(BuildContext context, CarrinhoLoaded state) {
     final bool isBlocked = state.isDebouncing || state.isRequesting;
+    final bool temFrete = state.taxaEntrega != null;
+    final valorTotal = state.total ?? state.subtotal;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -228,9 +230,38 @@ class CarrinhoPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Total do pedido', style: context.bodyLarge),
+                Text('Subtotal', style: context.bodyMedium.copyWith(color: context.textSecondary)),
                 Text(
                   'R\$ ${state.subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
+                  style: context.bodyLarge,
+                ),
+              ],
+            ),
+            if (temFrete) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Taxa de entrega', style: context.bodyMedium.copyWith(color: context.textSecondary)),
+                  Text(
+                    state.taxaEntrega! > 0 
+                      ? 'R\$ ${state.taxaEntrega!.toStringAsFixed(2).replaceAll('.', ',')}'
+                      : 'Grátis',
+                    style: context.bodyLarge.copyWith(
+                      color: state.taxaEntrega! == 0 ? Colors.green : null,
+                      fontWeight: state.taxaEntrega! == 0 ? FontWeight.bold : null,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total', style: context.titleLarge.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  'R\$ ${valorTotal.toStringAsFixed(2).replaceAll('.', ',')}',
                   style: context.titleLarge.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isBlocked ? context.textHint : context.primaryColor,
@@ -238,6 +269,21 @@ class CarrinhoPage extends StatelessWidget {
                 ),
               ],
             ),
+            if (state.distanciaKm != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 14, color: context.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Distância: ${state.distanciaKm!.toStringAsFixed(1)} km',
+                      style: context.bodySmall.copyWith(color: context.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: isBlocked ? null : () {

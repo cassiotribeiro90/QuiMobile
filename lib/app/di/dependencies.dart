@@ -60,6 +60,7 @@ Future<void> setupDependencies() async {
     CarrinhoCubit(
       getIt<CarrinhoService>(),
       getIt<AuthCubit>(),
+      getIt<SharedPreferences>(),
     ),
   );
 

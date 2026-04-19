@@ -17,6 +17,10 @@ class CarrinhoBottomBar extends StatelessWidget {
     this.isLoading = false,
   });
 
+  String _formatarMoeda(double valor) {
+    return 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<CarrinhoCubit, CarrinhoState>(
@@ -28,12 +32,16 @@ class CarrinhoBottomBar extends StatelessWidget {
 
         int totalItens = 0;
         double subtotal = 0;
+        double? taxaEntrega;
+        double? total;
         String? nomeLojaDisplay = lojaNome;
         bool isAnyOperationPending = false;
         
         if (state is CarrinhoLoaded) {
           totalItens = state.totalItens;
           subtotal = state.subtotal;
+          taxaEntrega = state.taxaEntrega;
+          total = state.total;
           nomeLojaDisplay ??= state.lojaNome;
           isAnyOperationPending = state.isDebouncing || state.isRequesting;
         }
@@ -105,30 +113,52 @@ class CarrinhoBottomBar extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Sacola - ${nomeLojaDisplay ?? "Loja"}',
+                                taxaEntrega != null && total != null 
+                                    ? '$totalItens ${totalItens == 1 ? 'item' : 'itens'}'
+                                    : 'Sacola - ${nomeLojaDisplay ?? "Loja"}',
                                 style: context.bodyMedium.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                '$totalItens ${totalItens == 1 ? 'item' : 'itens'}',
-                                style: context.bodySmall.copyWith(
-                                  color: context.textSecondary,
+                              if (taxaEntrega != null && total != null)
+                                Text(
+                                  'Frete ${taxaEntrega == 0 ? "Grátis" : _formatarMoeda(taxaEntrega)}',
+                                  style: context.bodySmall.copyWith(
+                                    color: taxaEntrega == 0 ? Colors.green : context.textSecondary,
+                                    fontWeight: taxaEntrega == 0 ? FontWeight.bold : null,
+                                  ),
+                                )
+                              else
+                                Text(
+                                  '$totalItens ${totalItens == 1 ? 'item' : 'itens'}',
+                                  style: context.bodySmall.copyWith(
+                                    color: context.textSecondary,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),
                         
                         Row(
                           children: [
-                            Text(
-                              'R\$ ${subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
-                              style: context.titleSmall.copyWith(
-                                color: context.primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (taxaEntrega != null && total != null)
+                                  Text(
+                                    'Total',
+                                    style: context.bodySmall.copyWith(color: context.textSecondary),
+                                  ),
+                                Text(
+                                  _formatarMoeda(total ?? subtotal),
+                                  style: context.titleSmall.copyWith(
+                                    color: context.primaryColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(width: 8),
                             Icon(

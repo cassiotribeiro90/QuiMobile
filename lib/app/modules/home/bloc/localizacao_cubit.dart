@@ -44,6 +44,12 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
         final Map<String, dynamic> data = jsonDecode(enderecoJson);
         final endereco = EnderecoModel.fromJson(data);
         debugPrint('🔍 [LocalizacaoCubit] Endereço carregado: ${endereco.resumido}');
+        
+        // Sincronizar ID separado se existir no modelo
+        if (endereco.id != null) {
+          await _prefs.setInt('endereco_padrao_id', endereco.id!);
+        }
+
         emit(LocalizacaoCarregada(
           endereco: endereco,
           origem: data['origem'] ?? 'endereco_padrao',
@@ -104,6 +110,14 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
       data['origem'] = estado.origem;
       final json = jsonEncode(data);
       await _prefs.setString('endereco_padrao', json);
+      
+      if (estado.endereco.id != null) {
+        await _prefs.setInt('endereco_padrao_id', estado.endereco.id!);
+        debugPrint('✅ [LocalizacaoCubit] ID do endereço salvo: ${estado.endereco.id}');
+      } else {
+        await _prefs.remove('endereco_padrao_id');
+      }
+
       debugPrint('✅ [LocalizacaoCubit] Dados persistidos no SharedPreferences: $json');
     } catch (e) {
       debugPrint('❌ [LocalizacaoCubit] Erro ao persistir endereço: $e');
@@ -112,6 +126,7 @@ class LocalizacaoCubit extends Cubit<LocalizacaoState> {
 
   Future<void> limparLocalizacao() async {
     await _prefs.remove('endereco_padrao');
+    await _prefs.remove('endereco_padrao_id');
     debugPrint('🗑️ [LocalizacaoCubit] Endereço removido do SharedPreferences');
     emit(LocalizacaoNaoEncontrada());
   }

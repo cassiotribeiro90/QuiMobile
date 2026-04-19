@@ -36,12 +36,18 @@ class CarrinhoResumo extends Equatable {
   final double subtotal;
   final int? lojaId;
   final String? lojaNome;
+  final double? taxaEntrega;
+  final double? total;
+  final double? distanciaKm;
 
   const CarrinhoResumo({
     required this.totalItens,
     required this.subtotal,
     this.lojaId,
     this.lojaNome,
+    this.taxaEntrega,
+    this.total,
+    this.distanciaKm,
   });
 
   factory CarrinhoResumo.fromJson(Map<String, dynamic> json) {
@@ -50,9 +56,12 @@ class CarrinhoResumo extends Equatable {
       subtotal: double.tryParse(json['subtotal']?.toString() ?? '0') ?? 0.0,
       lojaId: int.tryParse(json['loja_id']?.toString() ?? ''),
       lojaNome: json['loja_nome']?.toString(),
+      taxaEntrega: double.tryParse(json['taxa_entrega']?.toString() ?? ''),
+      total: double.tryParse(json['total']?.toString() ?? ''),
+      distanciaKm: double.tryParse(json['distancia_km']?.toString() ?? ''),
     );
   }
 
   @override
-  List<Object?> get props => [totalItens, subtotal, lojaId, lojaNome];
+  List<Object?> get props => [totalItens, subtotal, lojaId, lojaNome, taxaEntrega, total, distanciaKm];
 }
