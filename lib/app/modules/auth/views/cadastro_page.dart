@@ -9,6 +9,7 @@ import 'package:quipede/app/modules/home/bloc/localizacao_cubit.dart';
 import 'package:quipede/app/modules/home/bloc/localizacao_state.dart';
 import 'package:quipede/app/modules/auth/bloc/auth_cubit.dart';
 import 'package:quipede/app/modules/auth/bloc/auth_state.dart';
+import '../../../../shared/widgets/endereco_selecionado_widget.dart';
 
 class CadastroPage extends StatefulWidget {
   const CadastroPage({super.key});
@@ -104,46 +105,9 @@ class _CadastroPageState extends State<CadastroPage> {
                     ),
                     const SizedBox(height: 12),
                     
-                    GestureDetector(
+                    EnderecoSelecionadoWidget(
+                      endereco: isEnderecoDefinido ? locState.endereco : null,
                       onTap: () => Navigator.pushNamed(context, Routes.onboarding),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isEnderecoDefinido ? Colors.orange.shade50 : Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isEnderecoDefinido ? Colors.orange.shade200 : Colors.red.shade200,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isEnderecoDefinido ? Icons.home_rounded : Icons.location_off_rounded,
-                              color: isEnderecoDefinido ? primaryColor : Colors.red,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    isEnderecoDefinido 
-                                      ? locState.enderecoFormatado 
-                                      : 'Nenhum endereço definido',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: isEnderecoDefinido ? Colors.black87 : Colors.red.shade700,
-                                    ),
-                                  ),
-                                  if (isEnderecoDefinido)
-                                    const Text('Toque para alterar', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                ],
-                              ),
-                            ),
-                            Icon(Icons.edit_outlined, size: 20, color: isEnderecoDefinido ? primaryColor : Colors.red),
-                          ],
-                        ),
-                      ),
                     ),
                     
                     if (!isEnderecoDefinido)

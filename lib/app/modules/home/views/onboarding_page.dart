@@ -151,7 +151,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   OnboardingOptionCard(
                     icon: Icons.person_outline_rounded,
                     title: 'Já tenho uma conta',
-                    subtitle: 'Entrar br email ou redes sociais',
+                    subtitle: 'Entrar com email ou redes sociais',
                     onTap: () => Navigator.pushNamed(context, Routes.login),
                   ),
                   

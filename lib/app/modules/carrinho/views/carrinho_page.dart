@@ -3,12 +3,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/carrinho_cubit.dart';
 import '../widgets/quantity_selector.dart';
 import '../../../core/theme/app_theme_extension.dart';
+import '../../home/bloc/localizacao_cubit.dart';
+import '../../home/bloc/localizacao_state.dart';
+import '../../../../shared/widgets/endereco_selecionado_widget.dart';
 
 class CarrinhoPage extends StatelessWidget {
   const CarrinhoPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFFF57C00);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Minha Sacola'),
@@ -71,20 +76,41 @@ class CarrinhoPage extends StatelessWidget {
 
             return Column(
               children: [
-                if (state.lojaNome != null)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    color: context.primarySurface,
-                    child: Text(
-                      'Pedido em ${state.lojaNome}',
-                      style: context.bodyMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: context.primaryColor,
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        color: context.surfaceColor,
+                        child: BlocBuilder<LocalizacaoCubit, LocalizacaoState>(
+                          builder: (context, locState) {
+                            return EnderecoSelecionadoWidget(
+                              endereco: locState is LocalizacaoCarregada ? locState.endereco : null,
+                              onTap: () {
+                                // Pode abrir modal de troca de endereço ou onboarding
+                              },
+                            );
+                          },
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
+                if (state.lojaNome != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        color: Colors.orange.shade50,
+                        child: Text(
+                          state.lojaNome!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                const Divider(height: 1),
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
