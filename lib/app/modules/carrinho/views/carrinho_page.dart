@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/carrinho_cubit.dart';
 import '../widgets/quantity_selector.dart';
@@ -7,9 +8,27 @@ import '../../home/bloc/localizacao_cubit.dart';
 import '../../home/bloc/localizacao_state.dart';
 import '../../../../shared/widgets/endereco_selecionado_widget.dart';
 import '../../../widgets/app_scaffold.dart';
+import '../../../models/carrinho_response.dart';
 
-class CarrinhoPage extends StatelessWidget {
+class CarrinhoPage extends StatefulWidget {
   const CarrinhoPage({super.key});
+
+  @override
+  State<CarrinhoPage> createState() => _CarrinhoPageState();
+}
+
+class _CarrinhoPageState extends State<CarrinhoPage> {
+  final _trocoController = TextEditingController();
+
+  @override
+  void dispose() {
+    _trocoController.dispose();
+    super.dispose();
+  }
+
+  String _formatarMoeda(double valor) {
+    return 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,45 +94,47 @@ class CarrinhoPage extends StatelessWidget {
 
             final bool isOperationPending = state.isDebouncing || state.isRequesting;
 
-            return Column(
-              children: [
-                if (state.lojaNome != null)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        color: primaryColor,
-                        child: Text(
-                          state.lojaNome!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  if (state.lojaNome != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          color: primaryColor,
+                          child: Text(
+                            state.lojaNome!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                      ),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        color: context.surfaceColor,
-                        child: BlocBuilder<LocalizacaoCubit, LocalizacaoState>(
-                          builder: (context, locState) {
-                            return EnderecoSelecionadoWidget(
-                              endereco: locState is LocalizacaoCarregada ? locState.endereco : null,
-                              onTap: () {
-                                // Pode abrir modal de troca de endereço ou onboarding
-                              },
-                            );
-                          },
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          color: context.surfaceColor,
+                          child: BlocBuilder<LocalizacaoCubit, LocalizacaoState>(
+                            builder: (context, locState) {
+                              return EnderecoSelecionadoWidget(
+                                endereco: locState is LocalizacaoCarregada ? locState.endereco : null,
+                                onTap: () {
+                                  // Pode abrir modal de troca de endereço ou onboarding
+                                },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.separated(
+                      ],
+                    ),
+                  const Divider(height: 1),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     itemCount: state.itens.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
@@ -172,7 +193,7 @@ class CarrinhoPage extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'R\$ ${item.precoTotal.toStringAsFixed(2).replaceAll('.', ',')}',
+                                        _formatarMoeda(item.precoTotal),
                                         style: context.bodyLarge.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: isOperationPending ? context.textHint : context.primaryColor,
@@ -195,9 +216,10 @@ class CarrinhoPage extends StatelessWidget {
                       );
                     },
                   ),
-                ),
-                _buildResumo(context, state),
-              ],
+                  _buildFormaPagamentoSection(context, state),
+                  _buildResumo(context, state),
+                ],
+              ),
             );
           }
 
@@ -205,6 +227,92 @@ class CarrinhoPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Widget _buildFormaPagamentoSection(BuildContext context, CarrinhoLoaded state) {
+    final formasDisponiveis = state.formasPagamento.keys.toList();
+    if (formasDisponiveis.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.borderColor.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.payments_outlined, color: context.primaryColor, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Forma de Pagamento',
+                style: context.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...formasDisponiveis.map((key) {
+            final forma = state.formasPagamento[key];
+            final label = forma['label'] ?? key;
+            final icone = _getIconePagamento(key);
+
+            return RadioListTile<String>(
+              value: key,
+              groupValue: state.formaPagamentoSelecionada,
+              title: Row(
+                children: [
+                  Icon(icone, size: 20, color: context.textSecondary),
+                  const SizedBox(width: 12),
+                  Text(label, style: context.bodyMedium),
+                ],
+              ),
+              contentPadding: EdgeInsets.zero,
+              activeColor: context.primaryColor,
+              onChanged: (value) {
+                if (value != null) {
+                  context.read<CarrinhoCubit>().selecionarFormaPagamento(value);
+                }
+              },
+            );
+          }),
+          if (state.formaPagamentoSelecionada == 'dinheiro' && 
+              state.formasPagamento['dinheiro']?['troco'] == true)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 12, right: 12),
+              child: TextField(
+                controller: _trocoController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}'))],
+                decoration: InputDecoration(
+                  labelText: 'Troco para quanto?',
+                  hintText: 'Ex: 50,00',
+                  prefixText: 'R\$ ',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onChanged: (val) {
+                  final valor = double.tryParse(val.replaceAll(',', '.'));
+                  context.read<CarrinhoCubit>().atualizarTrocoPara(valor);
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconePagamento(String key) {
+    switch (key.toLowerCase()) {
+      case 'dinheiro': return Icons.money;
+      case 'cartao_entrega':
+      case 'cartao': return Icons.credit_card;
+      case 'pix': return Icons.pix;
+      default: return Icons.account_balance_wallet_outlined;
+    }
   }
 
   Widget _buildResumo(BuildContext context, CarrinhoLoaded state) {
@@ -233,7 +341,7 @@ class CarrinhoPage extends StatelessWidget {
               children: [
                 Text('Subtotal', style: context.bodyMedium.copyWith(color: context.textSecondary)),
                 Text(
-                  'R\$ ${state.subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
+                  _formatarMoeda(state.subtotal),
                   style: context.bodyLarge,
                 ),
               ],
@@ -246,7 +354,7 @@ class CarrinhoPage extends StatelessWidget {
                   Text('Taxa de entrega', style: context.bodyMedium.copyWith(color: context.textSecondary)),
                   Text(
                     state.taxaEntrega! > 0 
-                      ? 'R\$ ${state.taxaEntrega!.toStringAsFixed(2).replaceAll('.', ',')}'
+                      ? _formatarMoeda(state.taxaEntrega!)
                       : 'Grátis',
                     style: context.bodyLarge.copyWith(
                       color: state.taxaEntrega! == 0 ? Colors.green : null,
@@ -262,7 +370,7 @@ class CarrinhoPage extends StatelessWidget {
               children: [
                 Text('Total', style: context.titleLarge.copyWith(fontWeight: FontWeight.bold)),
                 Text(
-                  'R\$ ${valorTotal.toStringAsFixed(2).replaceAll('.', ',')}',
+                  _formatarMoeda(valorTotal),
                   style: context.titleLarge.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isBlocked ? context.textHint : context.primaryColor,
@@ -287,8 +395,8 @@ class CarrinhoPage extends StatelessWidget {
               ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: isBlocked ? null : () {
-                // TODO: Navegar para checkout
+              onPressed: (isBlocked || state.formaPagamentoSelecionada == null) ? null : () {
+                _finalizarPedido(context, state);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.primaryColor,
@@ -312,6 +420,13 @@ class CarrinhoPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _finalizarPedido(BuildContext context, CarrinhoLoaded state) async {
+    // TODO: Implementar chamada ao endpoint de criação de pedido
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Finalizando pedido com ${state.formaPagamentoSelecionada}')),
     );
   }
 

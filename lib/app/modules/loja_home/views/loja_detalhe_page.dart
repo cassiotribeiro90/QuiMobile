@@ -15,7 +15,7 @@ import '../../produtos/widgets/produto_simples_bottom_sheet.dart';
 import '../../auth/bloc/auth_cubit.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../../../routes/app_routes.dart';
-import '../../../models/carrinho_item.dart';
+import '../../../widgets/responsive_body.dart';
 
 class LojaDetalhePage extends StatefulWidget {
   final int lojaId;
@@ -160,44 +160,31 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
           }
         },
         builder: (context, state) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final isWeb = constraints.maxWidth > 600;
-
-              Widget content = Scaffold(
-                backgroundColor: context.backgroundColor,
-                appBar: AppBar(
-                  leading: BackButton(color: context.textPrimary),
-                  title: Text(
-                    state.loja?.nome ?? 'Carregando...',
-                    style: context.titleMedium.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  backgroundColor: context.surfaceColor,
-                  elevation: 0,
-                ),
-                bottomNavigationBar: _buildBottomBar(state),
-                body: Stack(
-                  children: [
-                    _buildBody(context, state),
-                    if (state is LojaHomeLoaded && state.isFiltering)
-                      Container(
-                        color: Colors.white.withOpacity(0.7),
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                  ],
-                ),
-              );
-
-              if (isWeb) {
-                return Center(
-                  child: SizedBox(
-                    width: 820,
-                    child: content,
-                  ),
-                );
-              }
-              return content;
-            },
+          return Scaffold(
+            backgroundColor: context.backgroundColor,
+            appBar: AppBar(
+              leading: BackButton(color: context.textPrimary),
+              title: Text(
+                state.loja?.nome ?? 'Carregando...',
+                style: context.titleMedium.copyWith(fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: context.surfaceColor,
+              elevation: 0,
+            ),
+            bottomNavigationBar: _buildBottomBar(state),
+            body: ResponsiveBody(
+              backgroundColor: context.backgroundColor,
+              child: Stack(
+                children: [
+                  _buildBody(context, state),
+                  if (state is LojaHomeLoaded && state.isFiltering)
+                    Container(
+                      color: Colors.white.withOpacity(0.7),
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                ],
+              ),
+            ),
           );
         },
       ),
@@ -218,7 +205,7 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
             onTap: () => Navigator.pushNamed(context, Routes.carrinho),
           );
         }
-        return const SizedBox.shrink();
+        return const SizedBox(height: 0,width: 0);
       },
     );
   }

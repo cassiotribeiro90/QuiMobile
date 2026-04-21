@@ -8,6 +8,7 @@ import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../core/theme/app_theme_extension.dart';
 import '../../../routes/app_routes.dart';
 import '../../../widgets/app_drawer.dart';
+import '../../../widgets/responsive_body.dart';
 import '../../../models/lojas_list_filter_option_model.dart';
 import '../../carrinho/widgets/carrinho_bottom_bar.dart';
 import '../../carrinho/bloc/carrinho_cubit.dart';
@@ -146,59 +147,45 @@ class _LojasListScreenState extends State<LojasListScreen> {
         },
         child: BlocBuilder<LojasCubit, LojasState>(
           builder: (context, state) {
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                final isWeb = constraints.maxWidth > 600;
-                
-                Widget content = Scaffold(
-                  backgroundColor: context.backgroundColor,
-                  drawer: const AppDrawer(),
-                  appBar: AppBar(
-                    title: _buildAppBarTitle(context),
-                    centerTitle: true,
-                    titleSpacing: 0,
-                    elevation: 0,
-                    backgroundColor: context.backgroundColor,
-                    foregroundColor: context.textPrimary,
-                    leading: Builder(
-                      builder: (context) => IconButton(
-                        icon: const Icon(Icons.menu_rounded),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
+            return Scaffold(
+              backgroundColor: context.backgroundColor,
+              drawer: const AppDrawer(),
+              appBar: AppBar(
+                title: _buildAppBarTitle(context),
+                centerTitle: true,
+                elevation: 0,
+                backgroundColor: context.backgroundColor,
+                foregroundColor: context.textPrimary,
+                leading: Builder(
+                  builder: (context) => IconButton(
+                    icon: const Icon(Icons.menu_rounded),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                ),
+                actions: [
+                   IconButton(
+                    icon: const Icon(Icons.notifications_none_rounded),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+              body: ResponsiveBody(
+                backgroundColor: context.backgroundColor,
+                child: RefreshIndicator(
+                  onRefresh: () => context.read<LojasCubit>().refreshList(),
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: _buildSearchTrigger(state),
                       ),
-                    ),
-                    actions: [
-                       IconButton(
-                        icon: const Icon(Icons.notifications_none_rounded),
-                        onPressed: () {},
-                      ),
+                      _buildSliverBody(state),
                     ],
                   ),
-                  body: RefreshIndicator(
-                    onRefresh: () => context.read<LojasCubit>().refreshList(),
-                    child: CustomScrollView(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: _buildSearchTrigger(state),
-                        ),
-                        _buildSliverBody(state),
-                      ],
-                    ),
-                  ),
-                  bottomNavigationBar: const CarrinhoBottomBar(),
-                );
-
-                if (isWeb) {
-                  return Center(
-                    child: SizedBox(
-                      width: 820,
-                      child: content,
-                    ),
-                  );
-                }
-                return content;
-              },
+                ),
+              ),
+              bottomNavigationBar: const CarrinhoBottomBar(),
             );
           },
         ),
@@ -349,13 +336,13 @@ class _LojasListScreenState extends State<LojasListScreen> {
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: 8,
-      itemBuilder: (_, __) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+      itemBuilder: (_, __) => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
             LoadingSkeleton(width: 52, height: 52, borderRadius: 8),
-            const SizedBox(width: 12),
-            const Expanded(
+            SizedBox(width: 12),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

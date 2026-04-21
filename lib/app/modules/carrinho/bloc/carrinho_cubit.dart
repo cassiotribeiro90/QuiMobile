@@ -25,6 +25,9 @@ class CarrinhoLoaded extends CarrinhoState {
   final double? taxaEntrega;
   final double? total;
   final double? distanciaKm;
+  final Map<String, dynamic> formasPagamento;
+  final String? formaPagamentoSelecionada;
+  final double? trocoPara;
   final bool isRequesting;
   final int? requestingItemId;
   final bool isDebouncing;
@@ -37,6 +40,9 @@ class CarrinhoLoaded extends CarrinhoState {
     this.taxaEntrega,
     this.total,
     this.distanciaKm,
+    this.formasPagamento = const {},
+    this.formaPagamentoSelecionada,
+    this.trocoPara,
     this.isRequesting = false,
     this.requestingItemId,
     this.isDebouncing = false,
@@ -45,8 +51,8 @@ class CarrinhoLoaded extends CarrinhoState {
   @override
   List<Object?> get props => [
     itens, totalItens, subtotal, lojaNome, 
-    taxaEntrega, total, distanciaKm,
-    isRequesting, requestingItemId, isDebouncing
+    taxaEntrega, total, distanciaKm, formasPagamento,
+    formaPagamentoSelecionada, trocoPara, isRequesting, requestingItemId, isDebouncing
   ];
 
   CarrinhoLoaded copyWith({
@@ -57,6 +63,9 @@ class CarrinhoLoaded extends CarrinhoState {
     double? taxaEntrega,
     double? total,
     double? distanciaKm,
+    Map<String, dynamic>? formasPagamento,
+    String? formaPagamentoSelecionada,
+    double? trocoPara,
     bool? isRequesting,
     int? requestingItemId,
     bool? isDebouncing,
@@ -69,6 +78,9 @@ class CarrinhoLoaded extends CarrinhoState {
       taxaEntrega: taxaEntrega ?? this.taxaEntrega,
       total: total ?? this.total,
       distanciaKm: distanciaKm ?? this.distanciaKm,
+      formasPagamento: formasPagamento ?? this.formasPagamento,
+      formaPagamentoSelecionada: formaPagamentoSelecionada ?? this.formaPagamentoSelecionada,
+      trocoPara: trocoPara ?? this.trocoPara,
       isRequesting: isRequesting ?? this.isRequesting,
       requestingItemId: requestingItemId ?? this.requestingItemId,
       isDebouncing: isDebouncing ?? this.isDebouncing,
@@ -175,6 +187,11 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
       _pendingUpdates.clear();
       _pendingAdd = null;
       
+      String? formaSelecionada;
+      if (response.resumo.formasDisponiveis.isNotEmpty) {
+        formaSelecionada = response.resumo.formasDisponiveis.first;
+      }
+
       emit(CarrinhoLoaded(
         itens: _getSortedItens(),
         totalItens: response.resumo.totalItens,
@@ -183,6 +200,8 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
         taxaEntrega: response.resumo.taxaEntrega,
         total: response.resumo.total,
         distanciaKm: response.resumo.distanciaKm,
+        formasPagamento: response.resumo.formasPagamento,
+        formaPagamentoSelecionada: formaSelecionada,
         isRequesting: false,
         requestingItemId: null,
         isDebouncing: false,
@@ -195,6 +214,18 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
       }
     } finally {
       _isFetching = false;
+    }
+  }
+
+  void selecionarFormaPagamento(String forma) {
+    if (state is CarrinhoLoaded) {
+      emit((state as CarrinhoLoaded).copyWith(formaPagamentoSelecionada: forma));
+    }
+  }
+
+  void atualizarTrocoPara(double? value) {
+    if (state is CarrinhoLoaded) {
+      emit((state as CarrinhoLoaded).copyWith(trocoPara: value));
     }
   }
 
@@ -254,6 +285,12 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
 
     if (result.success && result.data != null) {
       _itensMap = {for (var item in result.data!.itens) item.id: item};
+      
+      String? formaSelecionada;
+      if (result.data!.resumo.formasDisponiveis.isNotEmpty) {
+        formaSelecionada = result.data!.resumo.formasDisponiveis.first;
+      }
+
       emit(CarrinhoLoaded(
         itens: _getSortedItens(),
         totalItens: result.data!.resumo.totalItens,
@@ -262,6 +299,8 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
         taxaEntrega: result.data!.resumo.taxaEntrega,
         total: result.data!.resumo.total,
         distanciaKm: result.data!.resumo.distanciaKm,
+        formasPagamento: result.data!.resumo.formasPagamento,
+        formaPagamentoSelecionada: formaSelecionada,
         isDebouncing: false,
       ));
     } else if (result.isConflito && result.conflito != null) {
@@ -342,6 +381,9 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
     double? total;
     double? distanciaKm;
     String? lojaNome;
+    Map<String, dynamic> formasPagamento = {};
+    String? formaSelecionada;
+    double? trocoPara;
 
     if (state is CarrinhoLoaded) {
       final s = state as CarrinhoLoaded;
@@ -349,6 +391,9 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
       taxaEntrega = s.taxaEntrega;
       total = s.total;
       distanciaKm = s.distanciaKm;
+      formasPagamento = s.formasPagamento;
+      formaSelecionada = s.formaPagamentoSelecionada;
+      trocoPara = s.trocoPara;
     }
 
     emit(CarrinhoLoaded(
@@ -359,6 +404,9 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
       taxaEntrega: taxaEntrega,
       total: total,
       distanciaKm: distanciaKm,
+      formasPagamento: formasPagamento,
+      formaPagamentoSelecionada: formaSelecionada,
+      trocoPara: trocoPara,
       isRequesting: isRequesting,
       requestingItemId: requestingItemId,
       isDebouncing: isDebouncing,
@@ -401,6 +449,12 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
 
       if (result.success && result.data != null) {
         _itensMap = {for (var item in result.data!.itens) item.id: item};
+        
+        String? formaSelecionada;
+        if (result.data!.resumo.formasDisponiveis.isNotEmpty) {
+          formaSelecionada = result.data!.resumo.formasDisponiveis.first;
+        }
+
         emit(CarrinhoLoaded(
           itens: _getSortedItens(),
           totalItens: result.data!.resumo.totalItens,
@@ -409,6 +463,8 @@ class CarrinhoCubit extends Cubit<CarrinhoState> {
           taxaEntrega: result.data!.resumo.taxaEntrega,
           total: result.data!.resumo.total,
           distanciaKm: result.data!.resumo.distanciaKm,
+          formasPagamento: result.data!.resumo.formasPagamento,
+          formaPagamentoSelecionada: formaSelecionada,
           isDebouncing: false,
         ));
       } else {

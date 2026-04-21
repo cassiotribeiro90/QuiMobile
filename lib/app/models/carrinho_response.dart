@@ -23,7 +23,7 @@ class CarrinhoResponse extends Equatable {
           .toList(),
       resumo: json['resumo'] != null 
           ? CarrinhoResumo.fromJson(Map<String, dynamic>.from(json['resumo']))
-          : const CarrinhoResumo(totalItens: 0, subtotal: 0),
+          : const CarrinhoResumo(totalItens: 0, subtotal: 0, formasPagamento: {}),
     );
   }
 
@@ -39,6 +39,7 @@ class CarrinhoResumo extends Equatable {
   final double? taxaEntrega;
   final double? total;
   final double? distanciaKm;
+  final Map<String, dynamic> formasPagamento;
 
   const CarrinhoResumo({
     required this.totalItens,
@@ -48,6 +49,7 @@ class CarrinhoResumo extends Equatable {
     this.taxaEntrega,
     this.total,
     this.distanciaKm,
+    this.formasPagamento = const {},
   });
 
   factory CarrinhoResumo.fromJson(Map<String, dynamic> json) {
@@ -59,9 +61,21 @@ class CarrinhoResumo extends Equatable {
       taxaEntrega: double.tryParse(json['taxa_entrega']?.toString() ?? ''),
       total: double.tryParse(json['total']?.toString() ?? ''),
       distanciaKm: double.tryParse(json['distancia_km']?.toString() ?? ''),
+      formasPagamento: Map<String, dynamic>.from(json['formas_pagamento'] ?? {}),
     );
   }
 
+  /// Retorna as chaves das formas de pagamento disponíveis
+  List<String> get formasDisponiveis => formasPagamento.keys.toList();
+  
+  /// Retorna o label de uma forma de pagamento
+  String getLabel(String forma) {
+    return formasPagamento[forma]?['label'] ?? forma;
+  }
+
   @override
-  List<Object?> get props => [totalItens, subtotal, lojaId, lojaNome, taxaEntrega, total, distanciaKm];
+  List<Object?> get props => [
+    totalItens, subtotal, lojaId, lojaNome, 
+    taxaEntrega, total, distanciaKm, formasPagamento
+  ];
 }
